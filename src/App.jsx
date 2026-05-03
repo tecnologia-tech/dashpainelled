@@ -6,22 +6,9 @@ import DebugHud from "./components/DebugHud.jsx";
 import VideoPlayer from "./components/VideoPlayer.jsx";
 import { getSettings, saveSettings } from "./services/settingsService.js";
 import * as textTickerLayer from "./layers/textTickerLayer.js";
-import * as barsTestLayer from "./layers/barsTestLayer.js";
 
 function buildWelcomeMessage(name) {
   return `BEM-VINDO À TOCA DA PANTERA ${name}. SUA IMPORTAÇÃO COMEÇA AQUI.`;
-}
-
-function detectPanelMode() {
-  if (typeof window === "undefined") return false;
-  return new URLSearchParams(window.location.search).has("panel");
-}
-
-function detectPanelTest() {
-  if (typeof window === "undefined") return null;
-  const p = new URLSearchParams(window.location.search);
-  if (!p.has("panel")) return null;
-  return p.get("test");
 }
 
 function isValidMode(m) {
@@ -56,9 +43,6 @@ const KEY_TO_MODE = {
 
 export default function App() {
   const [frameCount] = useState(CONFIG.FRAME_COUNT);
-  const [isPanelMode] = useState(detectPanelMode);
-  const [panelTest] = useState(detectPanelTest);
-  const isPanelBarsTest = isPanelMode && panelTest === "bars";
   const [displayMode, setDisplayMode] = useState("dash");
   const [activeMode, setActiveMode] = useState(CONFIG.ACTIVE_MODE_DEFAULT);
   const activeModeRef = useRef(activeMode);
@@ -117,11 +101,8 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activateMode]);
 
-  // Em modo painel, forçar sempre o branch normal (faixa principal do dash).
-  // activeMode persistido pode estar em blackFriday/together/nutDay/etc → SVG
-  // placeholder mostraria o label desses modos. Painel ignora activeMode.
-  const isNormal = isPanelMode || activeMode === CONFIG.MODES.NORMAL;
-  const isWelcomeCliente = !isPanelMode && activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
+  const isNormal = activeMode === CONFIG.MODES.NORMAL;
+  const isWelcomeCliente = activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
 
   useEffect(() => {
     if (isWelcomeCliente) {
@@ -150,7 +131,6 @@ export default function App() {
   useEffect(() => {
     if (!CONFIG.DISPLAY_ROTATION.ENABLED) return;
     if (!isNormal) return;
-    if (isPanelMode) return; // painel só mostra a faixa, sem rotação para vídeo
     const ms = displayMode === "dash"
       ? CONFIG.DISPLAY_ROTATION.DASH_DURATION_MS
       : CONFIG.DISPLAY_ROTATION.VIDEO_DURATION_MS;
@@ -158,7 +138,7 @@ export default function App() {
       setDisplayMode((prev) => (prev === "dash" ? "video" : "dash"));
     }, ms);
     return () => clearTimeout(id);
-  }, [displayMode, isNormal, isPanelMode]);
+  }, [displayMode, isNormal]);
 
   const isDash = displayMode === "dash";
   const isVideo = displayMode === "video";
@@ -166,18 +146,9 @@ export default function App() {
   const videoPath = CONFIG.VIDEO_MODES[videoKey]?.path ?? CONFIG.VIDEO_MODES.NORMAL.path;
   const placeholderText = CONFIG.MODE_PLACEHOLDERS[activeMode] ?? activeMode;
 
-  const panelW = CONFIG.PANEL_SIGNAL?.WIDTH;
-  const panelStripH = CONFIG.PANEL_SIGNAL?.STRIP_HEIGHT;
-  const layoutStyle = isPanelMode && panelW && panelStripH
-    ? { "--panel-aspect": `${panelW} / ${panelStripH}` }
-    : undefined;
-
   return (
-    <div
-      className={"app-layout" + (isPanelMode ? " app-panel-mode" : "")}
-      style={layoutStyle}
-    >
-      {CONFIG.SHOW_CONTROLS && !isPanelMode && (
+    <div className="app-layout">
+      {CONFIG.SHOW_CONTROLS && (
         <header className="controls-area">
           <ControlPanel
             activeMode={activeMode}
@@ -187,18 +158,7 @@ export default function App() {
       )}
 
       <main className="preview-area">
-        {isPanelBarsTest ? (
-          <div className="mode-layer">
-            <LedCanvas
-              playing={true}
-              speed={CONFIG.TICKER.SPEED_PX_PER_SECOND}
-              tickerLayer={barsTestLayer}
-              loadGoals={false}
-              width={panelW}
-              height={panelStripH}
-            />
-          </div>
-        ) : isNormal ? (
+        {isNormal ? (
           <>
             <div className={`mode-layer${isDash ? "" : " mode-hidden"}`}>
               <LedCanvas
@@ -207,8 +167,6 @@ export default function App() {
                 onMetrics={setMetrics}
                 onGoalsStatus={setGoalsStatus}
                 onIconStatus={setIconStatus}
-                width={isPanelMode ? panelW : undefined}
-                height={isPanelMode ? panelStripH : undefined}
               />
               {CONFIG.SHOW_DEBUG && (
                 <DebugHud
@@ -221,7 +179,7 @@ export default function App() {
               )}
             </div>
 
-            {CONFIG.DISPLAY_ROTATION.ENABLED && !isPanelMode && (
+            {CONFIG.DISPLAY_ROTATION.ENABLED && (
               <div className={`mode-layer${isVideo ? "" : " mode-hidden"}`}>
                 <VideoPlayer active={isVideo} videoPath={videoPath} />
               </div>
