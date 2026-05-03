@@ -14,6 +14,10 @@ export const CONFIG = {
     // Overlay de debug com linhas verticais a cada MODULE_WIDTH.
     // Pode ser ativado via querystring ?modules em /led.
     DEBUG_MODULES: false,
+    // Deslocamento horizontal aplicado a todo o conteúdo da rota /led.
+    // Wrap circular: o que sai pela direita entra pela esquerda.
+    // Override em runtime via querystring ?offset=N (N múltiplo de 128 p/ módulo).
+    OFFSET_X: 0,
   },
 
   BACKGROUND: {

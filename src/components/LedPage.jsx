@@ -1,14 +1,30 @@
 import { CONFIG } from "../config.js";
 import LedCanvas from "./LedCanvas.jsx";
 
+function getParams() {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search);
+}
+
 function shouldDebugModules() {
   if (CONFIG.PANEL?.DEBUG_MODULES) return true;
-  if (typeof window === "undefined") return false;
-  return new URLSearchParams(window.location.search).has("modules");
+  const p = getParams();
+  return !!p?.has("modules");
+}
+
+function readOffsetX() {
+  const p = getParams();
+  const raw = p?.get("offset");
+  if (raw != null && raw !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n;
+  }
+  return CONFIG.PANEL?.OFFSET_X ?? 0;
 }
 
 export default function LedPage() {
   const debugModules = shouldDebugModules();
+  const offsetX = readOffsetX();
   return (
     <div className="led-page">
       <div className="led-strip">
@@ -18,6 +34,7 @@ export default function LedPage() {
           width={CONFIG.PANEL.WIDTH}
           height={CONFIG.PANEL.HEIGHT}
           debugModules={debugModules}
+          offsetX={offsetX}
         />
       </div>
     </div>

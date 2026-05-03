@@ -11,6 +11,48 @@ import { ensureLoaded as ensureGoals, getGoalsStatus } from "../services/goalsSe
  * - requestAnimationFrame conduz progress do loop.
  * - reporta métricas para o pai a cada ~250ms.
  */
+function drawModulesDebug(ctx, W, H) {
+  const moduleCount = CONFIG.PANEL?.MODULE_COUNT | 0;
+  const moduleWidth = CONFIG.PANEL?.MODULE_WIDTH | 0;
+  if (moduleCount <= 0 || moduleWidth <= 0) return;
+  ctx.save();
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  for (let i = 0; i < moduleCount; i++) {
+    ctx.fillStyle = i % 2 === 0
+      ? "rgba(0, 80, 200, 0.55)"
+      : "rgba(0, 160, 60, 0.55)";
+    ctx.fillRect(i * moduleWidth, 0, moduleWidth, H);
+  }
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 110px Montserrat, Arial, sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = "#000000";
+  ctx.lineJoin = "round";
+  for (let i = 0; i < moduleCount; i++) {
+    const cx = i * moduleWidth + moduleWidth / 2;
+    const cy = H / 2;
+    const label = String(i + 1);
+    ctx.strokeText(label, cx, cy);
+    ctx.fillText(label, cx, cy);
+  }
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.lineWidth = 1;
+  for (let i = 1; i < moduleCount; i++) {
+    const x = i * moduleWidth + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "#ff0000";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(2, 2, W - 4, H - 4);
+  ctx.restore();
+}
+
 export default function LedCanvas({
   playing,
   speed,
@@ -22,16 +64,19 @@ export default function LedCanvas({
   width,
   height,
   debugModules = false,
+  offsetX = 0,
 }) {
   const ticker = tickerLayer ?? goalsTicker;
   const canvasRef = useRef(null);
   const playingRef = useRef(playing);
   const speedRef = useRef(speed);
   const debugRef = useRef(debugModules);
+  const offsetRef = useRef(offsetX);
   const W = width  ?? CONFIG.WIDTH;
   const H = height ?? CONFIG.HEIGHT;
 
   useEffect(() => { debugRef.current = debugModules; }, [debugModules]);
+  useEffect(() => { offsetRef.current = offsetX; }, [offsetX]);
 
   useEffect(() => { playingRef.current = playing; }, [playing]);
   useEffect(() => { speedRef.current  = speed; },   [speed]);
@@ -77,7 +122,7 @@ export default function LedCanvas({
       const cycle = ticker.measureCycle(ctx, { width: W });
       const period = cycle / Math.max(1, speedRef.current);
       const progress = (elapsedSec / period) % 1;
-      const offsetX = -(progress * cycle);
+      const tickerOffsetX = -(progress * cycle);
 
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
@@ -88,60 +133,24 @@ export default function LedCanvas({
         progress,
       };
 
-      ctx.save(); background.render(ctx, state); ctx.restore();
-      ctx.save(); ticker.render(ctx, state);     ctx.restore();
+      const rawOffset = offsetRef.current | 0;
+      const ox = ((rawOffset % W) + W) % W;
 
-      if (debugRef.current) {
-        const moduleCount = CONFIG.PANEL?.MODULE_COUNT | 0;
-        const moduleWidth = CONFIG.PANEL?.MODULE_WIDTH | 0;
-        if (moduleCount > 0 && moduleWidth > 0) {
-          ctx.save();
-          ctx.shadowColor = "transparent";
-          ctx.shadowBlur = 0;
-          // Alternating module backgrounds.
-          for (let i = 0; i < moduleCount; i++) {
-            ctx.fillStyle = i % 2 === 0
-              ? "rgba(0, 80, 200, 0.55)"
-              : "rgba(0, 160, 60, 0.55)";
-            ctx.fillRect(i * moduleWidth, 0, moduleWidth, H);
-          }
-          // Big centered number per module.
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "900 110px Montserrat, Arial, sans-serif";
-          ctx.textBaseline = "middle";
-          ctx.textAlign = "center";
-          ctx.lineWidth = 6;
-          ctx.strokeStyle = "#000000";
-          ctx.lineJoin = "round";
-          for (let i = 0; i < moduleCount; i++) {
-            const cx = i * moduleWidth + moduleWidth / 2;
-            const cy = H / 2;
-            const label = String(i + 1);
-            ctx.strokeText(label, cx, cy);
-            ctx.fillText(label, cx, cy);
-          }
-          // Module separators.
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-          ctx.lineWidth = 1;
-          for (let i = 1; i < moduleCount; i++) {
-            const x = i * moduleWidth + 0.5;
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, H);
-            ctx.stroke();
-          }
-          // Red border around full canvas.
-          ctx.strokeStyle = "#ff0000";
-          ctx.lineWidth = 4;
-          ctx.strokeRect(2, 2, W - 4, H - 4);
-          ctx.restore();
-        }
+      const drawAll = () => {
+        background.render(ctx, state);
+        ticker.render(ctx, state);
+        if (debugRef.current) drawModulesDebug(ctx, W, H);
+      };
+
+      ctx.save(); ctx.translate(ox, 0); drawAll(); ctx.restore();
+      if (ox !== 0) {
+        ctx.save(); ctx.translate(ox - W, 0); drawAll(); ctx.restore();
       }
 
       metricsAccum += dt;
       if (metricsAccum >= 0.25) {
         const fps = fpsSamples ? fpsAcc / fpsSamples : 0;
-        onMetrics?.({ fps, progress, cycle, offsetX });
+        onMetrics?.({ fps, progress, cycle, offsetX: tickerOffsetX });
 
         if (loadGoals) {
           const gs = getGoalsStatus();
