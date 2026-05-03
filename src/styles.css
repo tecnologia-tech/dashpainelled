@@ -252,6 +252,20 @@ html, body, #root {
   gap: 8px;
 }
 
+/* Modo painel produção: rota /?panel reaproveita App. Esconde controles/HUD/modal. */
+.app-panel-mode {
+  grid-template-rows: 1fr;
+}
+.app-panel-mode .controls-area,
+.app-panel-mode .header,
+.app-panel-mode .toolbar,
+.app-panel-mode .mode-buttons,
+.app-panel-mode .debug-hud,
+.app-panel-mode .modal-backdrop,
+.app-panel-mode .control-panel {
+  display: none !important;
+}
+
 /* Rota /led — faixa preenchendo viewport igual rota normal.
    Canvas lógico 2048x192 escalado para 100vw via CSS. */
 .led-page {

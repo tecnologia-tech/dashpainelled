@@ -11,6 +11,11 @@ function buildWelcomeMessage(name) {
   return `BEM-VINDO À TOCA DA PANTERA ${name}. SUA IMPORTAÇÃO COMEÇA AQUI.`;
 }
 
+function detectPanelMode() {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).has("panel");
+}
+
 function isValidMode(m) {
   return typeof m === "string" && Object.values(CONFIG.MODES).includes(m);
 }
@@ -43,6 +48,7 @@ const KEY_TO_MODE = {
 
 export default function App() {
   const [frameCount] = useState(CONFIG.FRAME_COUNT);
+  const [isPanelMode] = useState(detectPanelMode);
   const [displayMode, setDisplayMode] = useState("dash");
   const [activeMode, setActiveMode] = useState(CONFIG.ACTIVE_MODE_DEFAULT);
   const activeModeRef = useRef(activeMode);
@@ -147,8 +153,8 @@ export default function App() {
   const placeholderText = CONFIG.MODE_PLACEHOLDERS[activeMode] ?? activeMode;
 
   return (
-    <div className="app-layout">
-      {CONFIG.SHOW_CONTROLS && (
+    <div className={"app-layout" + (isPanelMode ? " app-panel-mode" : "")}>
+      {CONFIG.SHOW_CONTROLS && !isPanelMode && (
         <header className="controls-area">
           <ControlPanel
             activeMode={activeMode}
