@@ -25,20 +25,32 @@ import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 const REF_W = 2048;
 const REF_H = 192;
 const MODULE_COUNT = 16;
-const DEFAULT_BAND_MUL = 1.0;
+const DEFAULT_BAND_MUL = 1.1;
+const DEFAULT_CYCLE_GAP = 0;
+
+function numParam(p, key, def, validate = (n) => Number.isFinite(n)) {
+  const raw = p.get(key);
+  if (raw === null || raw === "") return def;
+  const n = Number(raw);
+  return validate(n) ? n : def;
+}
 
 function readParams() {
   if (typeof window === "undefined") {
-    return { test: null, debug: null, bandMul: DEFAULT_BAND_MUL };
+    return {
+      test: null,
+      debug: null,
+      bandMul: DEFAULT_BAND_MUL,
+      cycleGap: DEFAULT_CYCLE_GAP,
+    };
   }
   const p = new URLSearchParams(window.location.search);
-  let bandMul = DEFAULT_BAND_MUL;
-  const raw = p.get("bandMul");
-  if (raw !== null && raw !== "") {
-    const n = Number(raw);
-    if (Number.isFinite(n) && n > 0) bandMul = n;
-  }
-  return { test: p.get("test"), debug: p.get("debug"), bandMul };
+  return {
+    test: p.get("test"),
+    debug: p.get("debug"),
+    bandMul: numParam(p, "bandMul", DEFAULT_BAND_MUL, (n) => Number.isFinite(n) && n > 0),
+    cycleGap: Math.max(0, Math.round(numParam(p, "cycleGap", DEFAULT_CYCLE_GAP))),
+  };
 }
 
 function drawModulesOverlay(ctx, W, H) {
@@ -65,9 +77,10 @@ function drawModulesOverlay(ctx, W, H) {
 
 export default function PanelPage() {
   const canvasRef = useRef(null);
-  const { test, debug, bandMul } = readParams();
+  const { test, debug, bandMul, cycleGap } = readParams();
   const isBars = test === "bars";
   const debugModules = debug === "modules";
+  const debugSeam = debug === "seam";
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -141,21 +154,43 @@ export default function PanelPage() {
         barsTest.render(bandCtx, { width: W, height: bandH, progress: 0 });
       } else {
         bandCtx.font = CONFIG.TICKER.FONT;
-        const cycleWidth = Math.max(1, Math.round(goalsTicker.measureCycle(bandCtx)));
+        const naturalCycle = Math.max(1, Math.round(goalsTicker.measureCycle(bandCtx)));
+        const cycleW = naturalCycle + cycleGap;
 
-        ensureSize(cycleCanvas, cycleWidth, bandH);
+        ensureSize(cycleCanvas, cycleW, bandH);
         cycleCtx.setTransform(1, 0, 0, 1, 0, 0);
         cycleCtx.imageSmoothingEnabled = true;
         cycleCtx.imageSmoothingQuality = "high";
-        cycleCtx.clearRect(0, 0, cycleWidth, bandH);
-        goalsTicker.render(cycleCtx, { width: cycleWidth, height: bandH, progress: 0 });
+        cycleCtx.clearRect(0, 0, cycleW, bandH);
+        goalsTicker.render(cycleCtx, { width: naturalCycle, height: bandH, progress: 0 });
 
         bandCtx.clearRect(0, 0, W, bandH);
         background.render(bandCtx, { width: W, height: bandH, progress: 0 });
 
-        const offset = Math.floor(((elapsedSec * speed) % cycleWidth + cycleWidth) % cycleWidth);
-        for (let x = -offset; x < W; x += cycleWidth) {
+        const offset = Math.floor(((elapsedSec * speed) % cycleW + cycleW) % cycleW);
+        for (let x = -offset; x < W; x += cycleW) {
           bandCtx.drawImage(cycleCanvas, x, 0);
+        }
+
+        if (debugSeam) {
+          bandCtx.save();
+          bandCtx.shadowColor = "transparent";
+          bandCtx.shadowBlur = 0;
+          bandCtx.strokeStyle = "#f0f";
+          bandCtx.lineWidth = 2;
+          bandCtx.fillStyle = "#f0f";
+          bandCtx.font = "900 24px Montserrat, Arial, sans-serif";
+          bandCtx.textBaseline = "top";
+          bandCtx.textAlign = "left";
+          let k = 0;
+          for (let x = -offset; x < W; x += cycleW) {
+            bandCtx.beginPath();
+            bandCtx.moveTo(Math.round(x) + 0.5, 0);
+            bandCtx.lineTo(Math.round(x) + 0.5, bandH);
+            bandCtx.stroke();
+            bandCtx.fillText(`seam #${k++} x=${Math.round(x)}`, x + 6, 4);
+          }
+          bandCtx.restore();
         }
       }
 
@@ -186,7 +221,7 @@ export default function PanelPage() {
       window.removeEventListener("resize", resize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [isBars, debugModules, bandMul]);
+  }, [isBars, debugModules, debugSeam, bandMul, cycleGap]);
 
   return (
     <div
