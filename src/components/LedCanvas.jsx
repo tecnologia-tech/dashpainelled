@@ -96,22 +96,44 @@ export default function LedCanvas({
         const moduleWidth = CONFIG.PANEL?.MODULE_WIDTH | 0;
         if (moduleCount > 0 && moduleWidth > 0) {
           ctx.save();
-          ctx.strokeStyle = "rgba(255, 0, 255, 0.85)";
-          ctx.fillStyle   = "rgba(255, 0, 255, 0.85)";
+          ctx.shadowColor = "transparent";
+          ctx.shadowBlur = 0;
+          // Alternating module backgrounds.
+          for (let i = 0; i < moduleCount; i++) {
+            ctx.fillStyle = i % 2 === 0
+              ? "rgba(0, 80, 200, 0.55)"
+              : "rgba(0, 160, 60, 0.55)";
+            ctx.fillRect(i * moduleWidth, 0, moduleWidth, H);
+          }
+          // Big centered number per module.
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "900 110px Montserrat, Arial, sans-serif";
+          ctx.textBaseline = "middle";
+          ctx.textAlign = "center";
+          ctx.lineWidth = 6;
+          ctx.strokeStyle = "#000000";
+          ctx.lineJoin = "round";
+          for (let i = 0; i < moduleCount; i++) {
+            const cx = i * moduleWidth + moduleWidth / 2;
+            const cy = H / 2;
+            const label = String(i + 1);
+            ctx.strokeText(label, cx, cy);
+            ctx.fillText(label, cx, cy);
+          }
+          // Module separators.
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
           ctx.lineWidth = 1;
-          ctx.font = "700 14px ui-monospace, Consolas, monospace";
-          ctx.textBaseline = "top";
-          ctx.textAlign = "left";
-          for (let i = 0; i <= moduleCount; i++) {
-            const x = Math.min(i * moduleWidth, W) + 0.5;
+          for (let i = 1; i < moduleCount; i++) {
+            const x = i * moduleWidth + 0.5;
             ctx.beginPath();
             ctx.moveTo(x, 0);
             ctx.lineTo(x, H);
             ctx.stroke();
-            if (i < moduleCount) {
-              ctx.fillText(String(i + 1), i * moduleWidth + 4, 4);
-            }
           }
+          // Red border around full canvas.
+          ctx.strokeStyle = "#ff0000";
+          ctx.lineWidth = 4;
+          ctx.strokeRect(2, 2, W - 4, H - 4);
           ctx.restore();
         }
       }
