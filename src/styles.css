@@ -290,6 +290,34 @@ html, body, #root {
   transform: none !important;
 }
 
+/* Modo de teste /led?full — faixa ocupa toda a viewport.
+   Canvas lógico permanece 2048x192; CSS estica para 100vw x 100vh. */
+.led-page.led-page-full {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+.led-page.led-page-full .led-strip {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: auto;
+}
+
+.led-page.led-page-full .led-stage,
+.led-page.led-page-full .led-canvas {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
 /* HUD de debug — dentro do preview-area. */
 .debug-hud {
   position: absolute;

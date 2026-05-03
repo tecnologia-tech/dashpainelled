@@ -12,6 +12,11 @@ function shouldDebugModules() {
   return !!p?.has("modules");
 }
 
+function shouldFullScreen() {
+  const p = getParams();
+  return !!p?.has("full");
+}
+
 function readOffsetX() {
   const p = getParams();
   const raw = p?.get("offset");
@@ -24,9 +29,11 @@ function readOffsetX() {
 
 export default function LedPage() {
   const debugModules = shouldDebugModules();
+  const fullScreen = shouldFullScreen();
   const offsetX = readOffsetX();
+  const pageClass = "led-page" + (fullScreen ? " led-page-full" : "");
   return (
-    <div className="led-page">
+    <div className={pageClass}>
       <div className="led-strip">
         <LedCanvas
           playing={true}
