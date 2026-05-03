@@ -107,8 +107,11 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activateMode]);
 
-  const isNormal = activeMode === CONFIG.MODES.NORMAL;
-  const isWelcomeCliente = activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
+  // Em modo painel, forçar sempre o branch normal (faixa principal do dash).
+  // activeMode persistido pode estar em blackFriday/together/nutDay/etc → SVG
+  // placeholder mostraria o label desses modos. Painel ignora activeMode.
+  const isNormal = isPanelMode || activeMode === CONFIG.MODES.NORMAL;
+  const isWelcomeCliente = !isPanelMode && activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
 
   useEffect(() => {
     if (isWelcomeCliente) {
@@ -137,6 +140,7 @@ export default function App() {
   useEffect(() => {
     if (!CONFIG.DISPLAY_ROTATION.ENABLED) return;
     if (!isNormal) return;
+    if (isPanelMode) return; // painel só mostra a faixa, sem rotação para vídeo
     const ms = displayMode === "dash"
       ? CONFIG.DISPLAY_ROTATION.DASH_DURATION_MS
       : CONFIG.DISPLAY_ROTATION.VIDEO_DURATION_MS;
@@ -144,7 +148,7 @@ export default function App() {
       setDisplayMode((prev) => (prev === "dash" ? "video" : "dash"));
     }, ms);
     return () => clearTimeout(id);
-  }, [displayMode, isNormal]);
+  }, [displayMode, isNormal, isPanelMode]);
 
   const isDash = displayMode === "dash";
   const isVideo = displayMode === "video";
@@ -185,7 +189,7 @@ export default function App() {
               )}
             </div>
 
-            {CONFIG.DISPLAY_ROTATION.ENABLED && (
+            {CONFIG.DISPLAY_ROTATION.ENABLED && !isPanelMode && (
               <div className={`mode-layer${isVideo ? "" : " mode-hidden"}`}>
                 <VideoPlayer active={isVideo} videoPath={videoPath} />
               </div>

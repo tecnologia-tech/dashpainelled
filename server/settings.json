@@ -3,5 +3,6 @@
   "dashMinutes": 2,
   "videoMinutes": 2,
   "videoMode": "NORMAL",
-  "sinoEnabled": false
+  "sinoEnabled": false,
+  "activeMode": "lastDance"
 }

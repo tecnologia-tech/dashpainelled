@@ -266,6 +266,41 @@ html, body, #root {
   display: none !important;
 }
 
+/* Faixa colada no topo. Sobrescreve flex/center herdados de .preview-area
+   e .led-stage, e width auto-fit do .led-canvas. */
+.app-panel-mode .preview-area {
+  display: block !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.app-panel-mode .mode-layer {
+  position: absolute;
+  inset: 0;
+  display: block !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+}
+.app-panel-mode .led-stage {
+  width: 100vw !important;
+  height: auto !important;
+  display: block !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.app-panel-mode .led-canvas {
+  width: 100vw !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  aspect-ratio: 2048 / 192;
+  max-width: none !important;
+}
+
 /* Rota /led — faixa preenchendo viewport igual rota normal.
    Canvas lógico 2048x192 escalado para 100vw via CSS. */
 .led-page {
