@@ -21,13 +21,17 @@ export default function LedCanvas({
   loadGoals = true,
   width,
   height,
+  debugModules = false,
 }) {
   const ticker = tickerLayer ?? goalsTicker;
   const canvasRef = useRef(null);
   const playingRef = useRef(playing);
   const speedRef = useRef(speed);
+  const debugRef = useRef(debugModules);
   const W = width  ?? CONFIG.WIDTH;
   const H = height ?? CONFIG.HEIGHT;
+
+  useEffect(() => { debugRef.current = debugModules; }, [debugModules]);
 
   useEffect(() => { playingRef.current = playing; }, [playing]);
   useEffect(() => { speedRef.current  = speed; },   [speed]);
@@ -86,6 +90,31 @@ export default function LedCanvas({
 
       ctx.save(); background.render(ctx, state); ctx.restore();
       ctx.save(); ticker.render(ctx, state);     ctx.restore();
+
+      if (debugRef.current) {
+        const moduleCount = CONFIG.PANEL?.MODULE_COUNT | 0;
+        const moduleWidth = CONFIG.PANEL?.MODULE_WIDTH | 0;
+        if (moduleCount > 0 && moduleWidth > 0) {
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 0, 255, 0.85)";
+          ctx.fillStyle   = "rgba(255, 0, 255, 0.85)";
+          ctx.lineWidth = 1;
+          ctx.font = "700 14px ui-monospace, Consolas, monospace";
+          ctx.textBaseline = "top";
+          ctx.textAlign = "left";
+          for (let i = 0; i <= moduleCount; i++) {
+            const x = Math.min(i * moduleWidth, W) + 0.5;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, H);
+            ctx.stroke();
+            if (i < moduleCount) {
+              ctx.fillText(String(i + 1), i * moduleWidth + 4, 4);
+            }
+          }
+          ctx.restore();
+        }
+      }
 
       metricsAccum += dt;
       if (metricsAccum >= 0.25) {

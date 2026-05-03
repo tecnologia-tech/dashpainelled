@@ -266,7 +266,7 @@ html, body, #root {
   top: 0;
   left: 0;
   width: 100vw;
-  aspect-ratio: 2731 / 192;
+  aspect-ratio: 2048 / 192;
   max-height: 100vh;
   background: #000;
   overflow: hidden;

@@ -234,7 +234,7 @@ export function buildText(goals = getGoals()) {
 /**
  * Largura total do ciclo já paddada para múltiplo da largura do painel.
  * Aceita opcionalmente { width, goals } para suportar resoluções diferentes
- * (rota /led usa CONFIG.LED_PANEL_WIDTH, dashboard usa CONFIG.WIDTH).
+ * (rota /led usa CONFIG.PANEL.WIDTH, dashboard usa CONFIG.WIDTH).
  */
 export function measureCycle(ctx, opts = {}) {
   const goals = opts.goals ?? getGoals();

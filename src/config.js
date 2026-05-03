@@ -5,10 +5,16 @@ export const CONFIG = {
   WIDTH: 2048,
   HEIGHT: 192,
 
-  // Resolução lógica usada apenas pela rota /led (painel circular).
-  // 170,6666… × 16 = 2730,666…  → arredondado para 2731.
-  LED_PANEL_WIDTH: 2731,
-  LED_PANEL_HEIGHT: 192,
+  // Painel LED físico (rota /led). 16 módulos × 128px = 2048.
+  PANEL: {
+    WIDTH: 2048,
+    HEIGHT: 192,
+    MODULE_COUNT: 16,
+    MODULE_WIDTH: 128,
+    // Overlay de debug com linhas verticais a cada MODULE_WIDTH.
+    // Pode ser ativado via querystring ?modules em /led.
+    DEBUG_MODULES: false,
+  },
 
   BACKGROUND: {
     TYPE: "image", // "solid" | "image"
