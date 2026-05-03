@@ -156,8 +156,17 @@ export default function App() {
   const videoPath = CONFIG.VIDEO_MODES[videoKey]?.path ?? CONFIG.VIDEO_MODES.NORMAL.path;
   const placeholderText = CONFIG.MODE_PLACEHOLDERS[activeMode] ?? activeMode;
 
+  const panelW = CONFIG.PANEL_SIGNAL?.WIDTH;
+  const panelStripH = CONFIG.PANEL_SIGNAL?.STRIP_HEIGHT;
+  const layoutStyle = isPanelMode && panelW && panelStripH
+    ? { "--panel-aspect": `${panelW} / ${panelStripH}` }
+    : undefined;
+
   return (
-    <div className={"app-layout" + (isPanelMode ? " app-panel-mode" : "")}>
+    <div
+      className={"app-layout" + (isPanelMode ? " app-panel-mode" : "")}
+      style={layoutStyle}
+    >
       {CONFIG.SHOW_CONTROLS && !isPanelMode && (
         <header className="controls-area">
           <ControlPanel
@@ -177,6 +186,8 @@ export default function App() {
                 onMetrics={setMetrics}
                 onGoalsStatus={setGoalsStatus}
                 onIconStatus={setIconStatus}
+                width={isPanelMode ? panelW : undefined}
+                height={isPanelMode ? panelStripH : undefined}
               />
               {CONFIG.SHOW_DEBUG && (
                 <DebugHud

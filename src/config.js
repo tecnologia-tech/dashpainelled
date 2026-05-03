@@ -5,6 +5,15 @@ export const CONFIG = {
   WIDTH: 2048,
   HEIGHT: 192,
 
+  // Sinal real do Windows entregue à controladora no modo /?panel.
+  // Se a viewport reportar 2112×1048, ticker precisa cobrir 2112 (não 2048),
+  // senão últimos módulos ficam pretos.
+  PANEL_SIGNAL: {
+    WIDTH: 2112,
+    HEIGHT: 1048,
+    STRIP_HEIGHT: 192,
+  },
+
   // Painel LED físico (rota /led). 16 módulos × 128px = 2048.
   PANEL: {
     WIDTH: 2048,
