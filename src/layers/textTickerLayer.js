@@ -67,13 +67,15 @@ export function render(ctx, state) {
   ctx.textAlign = "left";
 
   const cycle  = cycleWidth(ctx);
+  if (cycle <= 0) return;
   const offset = -((state.progress % 1) * cycle);
 
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
   ctx.clip();
-  drawAt(ctx, offset);
-  drawAt(ctx, offset + cycle);
+  for (let x = offset; x < CONFIG.WIDTH + cycle; x += cycle) {
+    drawAt(ctx, x);
+  }
   ctx.restore();
 }
