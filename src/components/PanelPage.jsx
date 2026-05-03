@@ -1,14 +1,19 @@
 // PanelPage.jsx
-// Render do painel circular via espelhamento de tela. Canvas ocupa
-// 100vw × 100vh. Painel quebra essa tela em pedaços pelo anel — toda
-// área visível precisa conter pixels úteis do dash, sem áreas pretas.
+// Render do painel circular via espelhamento de tela. Canvas full-screen
+// (100vw × 100vh) — 16 módulos recebem pixels úteis via tile vertical.
 //
-// Estratégia: render do dash em offscreen (W × bandH) e blit no main
-// canvas em modo `tile` (repete vertical) ou `stretch` (estica vertical).
-// Default = tile.
+// Pipeline:
+//   1) cycleCanvas (offscreen, cycleWidth × bandH): renderiza UM ciclo
+//      fechado do ticker (ícone+texto+separador). Bg transparente.
+//   2) bandCanvas  (offscreen, W × bandH): bg full-width + drawImage do
+//      cycleCanvas tilado horizontalmente em offsets inteiros.
+//   3) main canvas (W × H): drawImage do bandCanvas tilado verticalmente.
 //
-// Bitmap = innerWidth*dpr × innerHeight*dpr (HiDPI). Coordenadas de
-// desenho em CSS px via setTransform(dpr,...).
+// Vantagem: cada ciclo é bit-exact (drawImage de bitmap, não re-render
+// de texto), então emenda do loop X é pixel-perfect, sem deriva sub-pixel.
+//
+// Sem stretch vertical. Sem áreas pretas (tile cobre H inteiro).
+// Debug só com ?debug=modules.
 
 import { useEffect, useRef } from "react";
 import { CONFIG } from "../config.js";
@@ -20,15 +25,20 @@ import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 const REF_W = 2048;
 const REF_H = 192;
 const MODULE_COUNT = 16;
+const DEFAULT_BAND_MUL = 1.0;
 
 function readParams() {
   if (typeof window === "undefined") {
-    return { test: null, debug: null, fill: "tile" };
+    return { test: null, debug: null, bandMul: DEFAULT_BAND_MUL };
   }
   const p = new URLSearchParams(window.location.search);
-  const fillRaw = p.get("fill");
-  const fill = fillRaw === "stretch" ? "stretch" : "tile";
-  return { test: p.get("test"), debug: p.get("debug"), fill };
+  let bandMul = DEFAULT_BAND_MUL;
+  const raw = p.get("bandMul");
+  if (raw !== null && raw !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) bandMul = n;
+  }
+  return { test: p.get("test"), debug: p.get("debug"), bandMul };
 }
 
 function drawModulesOverlay(ctx, W, H) {
@@ -55,7 +65,7 @@ function drawModulesOverlay(ctx, W, H) {
 
 export default function PanelPage() {
   const canvasRef = useRef(null);
-  const { test, debug, fill } = readParams();
+  const { test, debug, bandMul } = readParams();
   const isBars = test === "bars";
   const debugModules = debug === "modules";
 
@@ -64,8 +74,10 @@ export default function PanelPage() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
-    const offCanvas = document.createElement("canvas");
-    const offCtx = offCanvas.getContext("2d");
+    const cycleCanvas = document.createElement("canvas");
+    const cycleCtx = cycleCanvas.getContext("2d");
+    const bandCanvas = document.createElement("canvas");
+    const bandCtx = bandCanvas.getContext("2d");
 
     const view = { W: 0, H: 0, dpr: 1 };
 
@@ -97,6 +109,13 @@ export default function PanelPage() {
     let lastT = 0;
     const speed = CONFIG.TICKER.SPEED_PX_PER_SECOND;
 
+    function ensureSize(c, w, h) {
+      if (c.width !== w || c.height !== h) {
+        c.width = w;
+        c.height = h;
+      }
+    }
+
     function loop(t) {
       if (!lastT) lastT = t;
       const dt = (t - lastT) / 1000;
@@ -110,26 +129,34 @@ export default function PanelPage() {
         return;
       }
 
-      const bandH = Math.max(1, Math.round(W * REF_H / REF_W));
+      const bandH = Math.max(1, Math.round(W * REF_H / REF_W * bandMul));
 
-      if (offCanvas.width !== W || offCanvas.height !== bandH) {
-        offCanvas.width = W;
-        offCanvas.height = bandH;
-      }
-      offCtx.setTransform(1, 0, 0, 1, 0, 0);
-      offCtx.imageSmoothingEnabled = true;
-      offCtx.imageSmoothingQuality = "high";
-      offCtx.clearRect(0, 0, W, bandH);
+      ensureSize(bandCanvas, W, bandH);
+      bandCtx.setTransform(1, 0, 0, 1, 0, 0);
+      bandCtx.imageSmoothingEnabled = true;
+      bandCtx.imageSmoothingQuality = "high";
 
       if (isBars) {
-        barsTest.render(offCtx, { width: W, height: bandH, progress: 0 });
+        bandCtx.clearRect(0, 0, W, bandH);
+        barsTest.render(bandCtx, { width: W, height: bandH, progress: 0 });
       } else {
-        const cycle = goalsTicker.measureCycle(offCtx);
-        const period = cycle / Math.max(1, speed);
-        const progress = (elapsedSec / period) % 1;
-        const bandState = { width: W, height: bandH, progress };
-        background.render(offCtx, bandState);
-        goalsTicker.render(offCtx, bandState);
+        bandCtx.font = CONFIG.TICKER.FONT;
+        const cycleWidth = Math.max(1, Math.round(goalsTicker.measureCycle(bandCtx)));
+
+        ensureSize(cycleCanvas, cycleWidth, bandH);
+        cycleCtx.setTransform(1, 0, 0, 1, 0, 0);
+        cycleCtx.imageSmoothingEnabled = true;
+        cycleCtx.imageSmoothingQuality = "high";
+        cycleCtx.clearRect(0, 0, cycleWidth, bandH);
+        goalsTicker.render(cycleCtx, { width: cycleWidth, height: bandH, progress: 0 });
+
+        bandCtx.clearRect(0, 0, W, bandH);
+        background.render(bandCtx, { width: W, height: bandH, progress: 0 });
+
+        const offset = Math.floor(((elapsedSec * speed) % cycleWidth + cycleWidth) % cycleWidth);
+        for (let x = -offset; x < W; x += cycleWidth) {
+          bandCtx.drawImage(cycleCanvas, x, 0);
+        }
       }
 
       ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
@@ -138,12 +165,8 @@ export default function PanelPage() {
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, W, H);
 
-      if (fill === "stretch") {
-        ctx.drawImage(offCanvas, 0, 0, W, bandH, 0, 0, W, H);
-      } else {
-        for (let y = 0; y < H; y += bandH) {
-          ctx.drawImage(offCanvas, 0, y);
-        }
+      for (let y = 0; y < H; y += bandH) {
+        ctx.drawImage(bandCanvas, 0, y);
       }
 
       if (debugModules) drawModulesOverlay(ctx, W, H);
@@ -163,7 +186,7 @@ export default function PanelPage() {
       window.removeEventListener("resize", resize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [isBars, debugModules, fill]);
+  }, [isBars, debugModules, bandMul]);
 
   return (
     <div
