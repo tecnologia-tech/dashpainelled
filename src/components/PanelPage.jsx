@@ -1,12 +1,14 @@
 // PanelPage.jsx
 // Render do painel circular via espelhamento de tela. Canvas ocupa
-// 100vw × 100vh do notebook. Painel físico recebe a viewport visível
-// inteira escalada nos 16 módulos. Sem largura fixa em pixels.
+// 100vw × 100vh. Painel quebra essa tela em pedaços pelo anel — toda
+// área visível precisa conter pixels úteis do dash, sem áreas pretas.
+//
+// Estratégia: render do dash em offscreen (W × bandH) e blit no main
+// canvas em modo `tile` (repete vertical) ou `stretch` (estica vertical).
+// Default = tile.
 //
 // Bitmap = innerWidth*dpr × innerHeight*dpr (HiDPI). Coordenadas de
 // desenho em CSS px via setTransform(dpr,...).
-//
-// Strip do ticker: 2048:192 proporcional a W. stripH = round(W * 192/2048).
 
 import { useEffect, useRef } from "react";
 import { CONFIG } from "../config.js";
@@ -20,36 +22,40 @@ const REF_H = 192;
 const MODULE_COUNT = 16;
 
 function readParams() {
-  if (typeof window === "undefined") return { test: null, debug: null };
+  if (typeof window === "undefined") {
+    return { test: null, debug: null, fill: "tile" };
+  }
   const p = new URLSearchParams(window.location.search);
-  return { test: p.get("test"), debug: p.get("debug") };
+  const fillRaw = p.get("fill");
+  const fill = fillRaw === "stretch" ? "stretch" : "tile";
+  return { test: p.get("test"), debug: p.get("debug"), fill };
 }
 
-function drawModulesOverlay(ctx, W, stripH) {
+function drawModulesOverlay(ctx, W, H) {
   const moduleW = W / MODULE_COUNT;
   ctx.save();
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;
-  ctx.font = `900 ${Math.round(stripH * 0.45)}px Montserrat, Arial, sans-serif`;
+  ctx.font = `900 ${Math.max(40, Math.round(H * 0.1))}px Montserrat, Arial, sans-serif`;
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
   for (let i = 0; i < MODULE_COUNT; i++) {
     const x = i * moduleW;
     ctx.lineWidth = 2;
     ctx.strokeStyle = i % 2 ? "#0f0" : "#00f";
-    ctx.strokeRect(x + 1, 1, moduleW - 2, stripH - 2);
+    ctx.strokeRect(x + 1, 1, moduleW - 2, H - 2);
     ctx.lineWidth = 4;
     ctx.strokeStyle = "#000";
-    ctx.strokeText(String(i + 1), x + moduleW / 2, stripH / 2);
+    ctx.strokeText(String(i + 1), x + moduleW / 2, H / 2);
     ctx.fillStyle = "#fff";
-    ctx.fillText(String(i + 1), x + moduleW / 2, stripH / 2);
+    ctx.fillText(String(i + 1), x + moduleW / 2, H / 2);
   }
   ctx.restore();
 }
 
 export default function PanelPage() {
   const canvasRef = useRef(null);
-  const { test, debug } = readParams();
+  const { test, debug, fill } = readParams();
   const isBars = test === "bars";
   const debugModules = debug === "modules";
 
@@ -57,6 +63,9 @@ export default function PanelPage() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
+
+    const offCanvas = document.createElement("canvas");
+    const offCtx = offCanvas.getContext("2d");
 
     const view = { W: 0, H: 0, dpr: 1 };
 
@@ -94,42 +103,50 @@ export default function PanelPage() {
       lastT = t;
       elapsedSec += dt;
 
+      const W = view.W;
+      const H = view.H;
+      if (W <= 0 || H <= 0) {
+        raf = requestAnimationFrame(loop);
+        return;
+      }
+
+      const bandH = Math.max(1, Math.round(W * REF_H / REF_W));
+
+      if (offCanvas.width !== W || offCanvas.height !== bandH) {
+        offCanvas.width = W;
+        offCanvas.height = bandH;
+      }
+      offCtx.setTransform(1, 0, 0, 1, 0, 0);
+      offCtx.imageSmoothingEnabled = true;
+      offCtx.imageSmoothingQuality = "high";
+      offCtx.clearRect(0, 0, W, bandH);
+
+      if (isBars) {
+        barsTest.render(offCtx, { width: W, height: bandH, progress: 0 });
+      } else {
+        const cycle = goalsTicker.measureCycle(offCtx);
+        const period = cycle / Math.max(1, speed);
+        const progress = (elapsedSec / period) % 1;
+        const bandState = { width: W, height: bandH, progress };
+        background.render(offCtx, bandState);
+        goalsTicker.render(offCtx, bandState);
+      }
+
       ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
-
-      const W = view.W;
-      const H = view.H;
-
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, W, H);
 
-      const stripW = W;
-      const stripH = Math.round(W * REF_H / REF_W);
-      const stripY = 0;
-
-      ctx.save();
-      ctx.translate(0, stripY);
-
-      if (isBars) {
-        barsTest.render(ctx, { width: stripW, height: stripH, progress: 0 });
+      if (fill === "stretch") {
+        ctx.drawImage(offCanvas, 0, 0, W, bandH, 0, 0, W, H);
       } else {
-        const cycle = goalsTicker.measureCycle(ctx);
-        const period = cycle / Math.max(1, speed);
-        const progress = (elapsedSec / period) % 1;
-        const stripState = { width: stripW, height: stripH, progress };
-        background.render(ctx, stripState);
-        goalsTicker.render(ctx, stripState);
+        for (let y = 0; y < H; y += bandH) {
+          ctx.drawImage(offCanvas, 0, y);
+        }
       }
 
-      ctx.restore();
-
-      if (debugModules) {
-        ctx.save();
-        ctx.translate(0, stripY);
-        drawModulesOverlay(ctx, W, stripH);
-        ctx.restore();
-      }
+      if (debugModules) drawModulesOverlay(ctx, W, H);
 
       raf = requestAnimationFrame(loop);
     }
@@ -146,7 +163,7 @@ export default function PanelPage() {
       window.removeEventListener("resize", resize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [isBars, debugModules]);
+  }, [isBars, debugModules, fill]);
 
   return (
     <div
