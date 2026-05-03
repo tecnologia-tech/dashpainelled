@@ -105,6 +105,16 @@ export default function PanelPage() {
   useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
   const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
 
+  const [viewportW, setViewportW] = useState(
+    typeof window !== "undefined" ? window.innerWidth : REF_W
+  );
+  useEffect(() => {
+    function onResize() { setViewportW(window.innerWidth); }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const bandH = Math.max(1, Math.round(viewportW * REF_H / REF_W * bandMul));
+
   useEffect(() => {
     let cancelled = false;
     function loadOnce() {
@@ -156,9 +166,9 @@ export default function PanelPage() {
     function resize() {
       const dpr = window.devicePixelRatio || 1;
       const w = window.innerWidth;
-      const h = window.innerHeight;
+      const h = Math.max(1, Math.round(w * REF_H / REF_W * bandMul));
       canvas.style.width = "100vw";
-      canvas.style.height = "100vh";
+      canvas.style.height = `${h}px`;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -201,7 +211,7 @@ export default function PanelPage() {
         return;
       }
 
-      const bandH = Math.max(1, Math.round(W * REF_H / REF_W * bandMul));
+      const bandH = H;
 
       ensureSize(bandCanvas, W, bandH);
       bandCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -259,9 +269,7 @@ export default function PanelPage() {
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, W, H);
 
-      for (let y = 0; y < H; y += bandH) {
-        ctx.drawImage(bandCanvas, 0, y);
-      }
+      ctx.drawImage(bandCanvas, 0, 0);
 
       if (debugModules) drawModulesOverlay(ctx, W, H);
 
@@ -306,10 +314,13 @@ export default function PanelPage() {
           muted
           playsInline
           style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
             display: "block",
             width: "100vw",
-            height: "100vh",
-            objectFit: "contain",
+            height: `${bandH}px`,
+            objectFit: "cover",
             background: "#000",
             margin: 0,
             padding: 0,
@@ -320,9 +331,12 @@ export default function PanelPage() {
         <canvas
           ref={canvasRef}
           style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
             display: "block",
             width: "100vw",
-            height: "100vh",
+            height: `${bandH}px`,
             margin: 0,
             padding: 0,
             border: 0,
