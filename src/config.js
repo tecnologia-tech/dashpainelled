@@ -157,6 +157,7 @@ export const CONFIG = {
     LAST_DANCE: { label: "Last Dance", path: "/assets/last-dance.mp4" },
     NUT_DAY: { label: "Nut Day", path: "/assets/nut-day.mp4" },
     BLACK_FRIDAY: { label: "Black Friday", path: "/assets/black-friday.mp4" },
+    PANTERA: { label: "Pantera", path: "/assets/pantera.mp4" },
   },
 
   SINO_ENABLED_DEFAULT: false,
@@ -170,6 +171,7 @@ export const CONFIG = {
     BEM_VINDO_CLIENTE: "bemVindoCliente",
     BEM_VINDO_COLABORADOR: "bemVindoColaborador",
     NUT_DAY: "nutDay",
+    PANTERA_VIDEO: "panteraVideo",
   },
 
   MODE_LABELS: {
@@ -181,6 +183,7 @@ export const CONFIG = {
     bemVindoCliente: "Bem-vindo Cliente",
     bemVindoColaborador: "Bem vindo Colaborador",
     nutDay: "Nut Day",
+    panteraVideo: "Pantera",
   },
 
   MODE_TO_VIDEO_KEY: {
@@ -192,6 +195,7 @@ export const CONFIG = {
     bemVindoCliente: "NORMAL",
     bemVindoColaborador: "NORMAL",
     nutDay: "NUT_DAY",
+    panteraVideo: "PANTERA",
   },
 
   MODE_PLACEHOLDERS: {

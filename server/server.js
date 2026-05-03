@@ -19,6 +19,7 @@ const allowedModes = [
   "bemVindoCliente",
   "bemVindoColaborador",
   "nutDay",
+  "panteraVideo",
 ];
 
 function readSettings() {

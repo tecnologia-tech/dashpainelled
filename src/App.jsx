@@ -39,6 +39,7 @@ const KEY_TO_MODE = {
   F18: CONFIG.MODES.BEM_VINDO_CLIENTE,
   F19: CONFIG.MODES.BEM_VINDO_COLABORADOR,
   F20: CONFIG.MODES.NUT_DAY,
+  F21: CONFIG.MODES.PANTERA_VIDEO,
 };
 
 export default function App() {
@@ -103,6 +104,7 @@ export default function App() {
 
   const isNormal = activeMode === CONFIG.MODES.NORMAL;
   const isWelcomeCliente = activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
+  const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
 
   useEffect(() => {
     if (isWelcomeCliente) {
@@ -193,6 +195,10 @@ export default function App() {
             tickerLayer={textTickerLayer}
             loadGoals={false}
           />
+        ) : isPanteraVideo ? (
+          <div className="mode-layer">
+            <VideoPlayer active={true} videoPath={videoPath} />
+          </div>
         ) : (
           <svg
             className="mode-placeholder"
