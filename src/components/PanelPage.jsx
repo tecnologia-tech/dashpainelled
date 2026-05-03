@@ -15,18 +15,36 @@
 // Sem stretch vertical. Sem áreas pretas (tile cobre H inteiro).
 // Debug só com ?debug=modules.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CONFIG } from "../config.js";
 import * as background from "../layers/backgroundLayer.js";
 import * as goalsTicker from "../layers/goalsTickerLayer.js";
 import * as barsTest from "../layers/barsTestLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
+import { getSettings, saveSettings } from "../services/settingsService.js";
 
 const REF_W = 2048;
 const REF_H = 192;
 const MODULE_COUNT = 16;
 const DEFAULT_BAND_MUL = 1.1;
 const DEFAULT_CYCLE_GAP = 0;
+
+const LEGACY_MODE_ALIAS = { bemVindo: "bemVindoCliente" };
+const KEY_TO_MODE = {
+  F13: CONFIG.MODES.NORMAL,
+  F14: CONFIG.MODES.SINO,
+  F15: CONFIG.MODES.LAST_DANCE,
+  F16: CONFIG.MODES.BLACK_FRIDAY,
+  F17: CONFIG.MODES.TOGETHER,
+  F18: CONFIG.MODES.BEM_VINDO_CLIENTE,
+  F19: CONFIG.MODES.BEM_VINDO_COLABORADOR,
+  F20: CONFIG.MODES.NUT_DAY,
+  F21: CONFIG.MODES.PANTERA_VIDEO,
+};
+function normalizeMode(m) { return LEGACY_MODE_ALIAS[m] ?? m; }
+function isValidMode(m) {
+  return typeof m === "string" && Object.values(CONFIG.MODES).includes(m);
+}
 
 function numParam(p, key, def, validate = (n) => Number.isFinite(n)) {
   const raw = p.get(key);
@@ -82,7 +100,48 @@ export default function PanelPage() {
   const debugModules = debug === "modules";
   const debugSeam = debug === "seam";
 
+  const [activeMode, setActiveMode] = useState(CONFIG.ACTIVE_MODE_DEFAULT);
+  const activeModeRef = useRef(activeMode);
+  useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
+  const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
+
   useEffect(() => {
+    let cancelled = false;
+    function loadOnce() {
+      getSettings().then((s) => {
+        if (cancelled) return;
+        const m = normalizeMode(s.activeMode);
+        if (isValidMode(m) && m !== activeModeRef.current) setActiveMode(m);
+      }).catch(() => {});
+    }
+    loadOnce();
+    const id = setInterval(loadOnce, 2000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      const mode = KEY_TO_MODE[e.key];
+      if (!mode) return;
+      if (activeModeRef.current === mode) return;
+      activeModeRef.current = mode;
+      setActiveMode(mode);
+      saveSettings({
+        activeMode: mode,
+        sinoEnabled: mode === CONFIG.MODES.SINO,
+      }).catch((err) => console.warn("saveSettings failed:", err));
+      fetch(CONFIG.MODE_BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+      }).catch(() => {});
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (isPanteraVideo) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -221,7 +280,9 @@ export default function PanelPage() {
       window.removeEventListener("resize", resize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [isBars, debugModules, debugSeam, bandMul, cycleGap]);
+  }, [isBars, debugModules, debugSeam, bandMul, cycleGap, isPanteraVideo]);
+
+  const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
 
   return (
     <div
@@ -237,17 +298,37 @@ export default function PanelPage() {
         overflow: "hidden",
       }}
     >
-      <canvas
-        ref={canvasRef}
-        style={{
-          display: "block",
-          width: "100vw",
-          height: "100vh",
-          margin: 0,
-          padding: 0,
-          border: 0,
-        }}
-      />
+      {isPanteraVideo ? (
+        <video
+          src={panteraPath}
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            display: "block",
+            width: "100vw",
+            height: "100vh",
+            objectFit: "contain",
+            background: "#000",
+            margin: 0,
+            padding: 0,
+            border: 0,
+          }}
+        />
+      ) : (
+        <canvas
+          ref={canvasRef}
+          style={{
+            display: "block",
+            width: "100vw",
+            height: "100vh",
+            margin: 0,
+            padding: 0,
+            border: 0,
+          }}
+        />
+      )}
     </div>
   );
 }
