@@ -91,7 +91,7 @@ function buildBlocks(ctx, goals) {
     width: Math.ceil(ctx.measureText(s).width),
   });
 
-  const gap = (width, pad = false) => ({ type: "gap", width: width | 0, pad });
+  const gap = (width) => ({ type: "gap", width: width | 0 });
 
   const icon = (key) => ({
     type: "icon",
@@ -111,9 +111,9 @@ function buildBlocks(ctx, goals) {
     blocks.push(text("Meta:", palette.light));
     blocks.push(gap(sp.LABEL_VALUE_GAP));
     blocks.push(text(meta, palette.mid));
-    blocks.push(gap(sp.BULLET_PAD, true));
+    blocks.push(gap(sp.BULLET_PAD));
     blocks.push(text("•", "#FFFFFF"));
-    blocks.push(gap(sp.BULLET_PAD, true));
+    blocks.push(gap(sp.BULLET_PAD));
   };
 
   const blocks = [];
@@ -189,37 +189,9 @@ function drawBlocks(ctx, blocks, startX) {
   }
 }
 
-/**
- * Pad cycle to a multiple of CONFIG.WIDTH so canvas seam wraps seamlessly
- * on a circular LED panel. Extra width is distributed across BULLET_PAD
- * gaps to avoid a single black hole at end of cycle.
- */
-function padCycleForWrap(blocks, panelWidth) {
-  const W = panelWidth | 0 || CONFIG.WIDTH;
-  const baseGap = CONFIG.TICKER.GAP | 0;
-  const natural = blocks.reduce((s, b) => s + b.width, 0) + baseGap;
-  if (natural <= 0) return { blocks, cycle: 0 };
-  const N = Math.max(1, Math.ceil(natural / W));
-  const target = N * W;
-  const extra = target - natural;
-  if (extra <= 0) return { blocks, cycle: target };
-
-  const padIdx = [];
-  for (let i = 0; i < blocks.length; i++) if (blocks[i].pad) padIdx.push(i);
-
-  const out = blocks.slice();
-  if (padIdx.length === 0) {
-    out.push({ type: "gap", width: extra, pad: false });
-  } else {
-    const per = Math.floor(extra / padIdx.length);
-    let rem = extra - per * padIdx.length;
-    for (const i of padIdx) {
-      let add = per;
-      if (rem > 0) { add += 1; rem -= 1; }
-      out[i] = { ...out[i], width: out[i].width + add };
-    }
-  }
-  return { blocks: out, cycle: target };
+/** Soma natural dos blocos + GAP final. Sem padding artificial. */
+function naturalCycle(blocks) {
+  return blocks.reduce((s, b) => s + b.width, 0) + (CONFIG.TICKER.GAP | 0);
 }
 
 /** Texto puro (apenas para metadados/JSON). */
@@ -231,17 +203,12 @@ export function buildText(goals = getGoals()) {
   }).join(" ");
 }
 
-/**
- * Largura total do ciclo já paddada para múltiplo da largura do painel.
- * Aceita opcionalmente { width, goals } para suportar resoluções diferentes
- * (rota /led usa CONFIG.PANEL.WIDTH, dashboard usa CONFIG.WIDTH).
- */
+/** Largura natural do ciclo (sem padding). LedCanvas usa para período de loop. */
 export function measureCycle(ctx, opts = {}) {
   const goals = opts.goals ?? getGoals();
-  const panelWidth = opts.width ?? CONFIG.WIDTH;
   const prevFont = ctx.font;
   ctx.font = CONFIG.TICKER.FONT;
-  const { cycle } = padCycleForWrap(buildBlocks(ctx, goals), panelWidth);
+  const cycle = naturalCycle(buildBlocks(ctx, goals));
   ctx.font = prevFont;
   return cycle || 1;
 }
@@ -262,7 +229,8 @@ export function render(ctx, state) {
 
   const W = state?.width  ?? CONFIG.WIDTH;
   const H = state?.height ?? CONFIG.HEIGHT;
-  const { blocks: padded, cycle } = padCycleForWrap(buildBlocks(ctx, goals), W);
+  const blocks = buildBlocks(ctx, goals);
+  const cycle  = naturalCycle(blocks);
   if (cycle <= 0) return;
   const offset = Math.floor(-((state.progress % 1) * cycle));
 
@@ -270,8 +238,11 @@ export function render(ctx, state) {
   ctx.beginPath();
   ctx.rect(0, 0, W, H);
   ctx.clip();
-  for (let x = offset; x < W + cycle; x += cycle) {
-    drawBlocks(ctx, padded, x);
+  // Tile contínuo: começa um ciclo antes de offset (margem de segurança) e
+  // desenha cópias até cobrir toda a largura W. Quando cycle < W, várias
+  // cópias preenchem; quando cycle >= W, basta uma ou duas.
+  for (let x = offset - cycle; x < W + cycle; x += cycle) {
+    drawBlocks(ctx, blocks, x);
   }
   ctx.restore();
 }

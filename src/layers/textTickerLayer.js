@@ -25,25 +25,18 @@ export function getIconStatus() {
   return {};
 }
 
-/**
- * Cycle paddado para múltiplo de CONFIG.WIDTH. Garante emenda perfeita
- * na borda do canvas para painel circular.
- */
-function cycleWidth(ctx, panelWidth) {
-  const W = panelWidth | 0 || CONFIG.WIDTH;
+/** Largura natural do ciclo: texto + gap. Sem padding artificial. */
+function cycleWidth(ctx) {
   const w = Math.ceil(ctx.measureText(currentText).width);
-  const minGap = (CONFIG.TICKER.GAP | 0) || FALLBACK_GAP;
-  const natural = w + minGap;
-  const N = Math.max(1, Math.ceil(natural / W));
-  return N * W;
+  const gap = (CONFIG.TICKER.GAP | 0) || FALLBACK_GAP;
+  return w + gap;
 }
 
-export function measureCycle(ctx, opts = {}) {
+export function measureCycle(ctx) {
   if (!currentText) return 1;
-  const panelWidth = opts.width ?? CONFIG.WIDTH;
   const prevFont = ctx.font;
   ctx.font = CONFIG.TICKER.FONT;
-  const total = cycleWidth(ctx, panelWidth);
+  const total = cycleWidth(ctx);
   ctx.font = prevFont;
   return total;
 }
@@ -76,7 +69,7 @@ export function render(ctx, state) {
 
   const W = state?.width  ?? CONFIG.WIDTH;
   const H = state?.height ?? CONFIG.HEIGHT;
-  const cycle  = cycleWidth(ctx, W);
+  const cycle  = cycleWidth(ctx);
   if (cycle <= 0) return;
   const offset = Math.floor(-((state.progress % 1) * cycle));
 
@@ -84,7 +77,7 @@ export function render(ctx, state) {
   ctx.beginPath();
   ctx.rect(0, 0, W, H);
   ctx.clip();
-  for (let x = offset; x < W + cycle; x += cycle) {
+  for (let x = offset - cycle; x < W + cycle; x += cycle) {
     drawAt(ctx, x);
   }
   ctx.restore();
