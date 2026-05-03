@@ -91,7 +91,7 @@ function buildBlocks(ctx, goals) {
     width: Math.ceil(ctx.measureText(s).width),
   });
 
-  const gap = (width) => ({ type: "gap", width: width | 0 });
+  const gap = (width, pad = false) => ({ type: "gap", width: width | 0, pad });
 
   const icon = (key) => ({
     type: "icon",
@@ -111,9 +111,9 @@ function buildBlocks(ctx, goals) {
     blocks.push(text("Meta:", palette.light));
     blocks.push(gap(sp.LABEL_VALUE_GAP));
     blocks.push(text(meta, palette.mid));
-    blocks.push(gap(sp.BULLET_PAD));
+    blocks.push(gap(sp.BULLET_PAD, true));
     blocks.push(text("•", "#FFFFFF"));
-    blocks.push(gap(sp.BULLET_PAD));
+    blocks.push(gap(sp.BULLET_PAD, true));
   };
 
   const blocks = [];
@@ -189,6 +189,38 @@ function drawBlocks(ctx, blocks, startX) {
   }
 }
 
+/**
+ * Pad cycle to a multiple of CONFIG.WIDTH so canvas seam wraps seamlessly
+ * on a circular LED panel. Extra width is distributed across BULLET_PAD
+ * gaps to avoid a single black hole at end of cycle.
+ */
+function padCycleForWrap(blocks) {
+  const baseGap = CONFIG.TICKER.GAP | 0;
+  const natural = blocks.reduce((s, b) => s + b.width, 0) + baseGap;
+  if (natural <= 0) return { blocks, cycle: 0 };
+  const N = Math.max(1, Math.ceil(natural / CONFIG.WIDTH));
+  const target = N * CONFIG.WIDTH;
+  const extra = target - natural;
+  if (extra <= 0) return { blocks, cycle: target };
+
+  const padIdx = [];
+  for (let i = 0; i < blocks.length; i++) if (blocks[i].pad) padIdx.push(i);
+
+  const out = blocks.slice();
+  if (padIdx.length === 0) {
+    out.push({ type: "gap", width: extra, pad: false });
+  } else {
+    const per = Math.floor(extra / padIdx.length);
+    let rem = extra - per * padIdx.length;
+    for (const i of padIdx) {
+      let add = per;
+      if (rem > 0) { add += 1; rem -= 1; }
+      out[i] = { ...out[i], width: out[i].width + add };
+    }
+  }
+  return { blocks: out, cycle: target };
+}
+
 /** Texto puro (apenas para metadados/JSON). */
 export function buildText(goals = getGoals()) {
   return METAS.map((m) => {
@@ -198,14 +230,13 @@ export function buildText(goals = getGoals()) {
   }).join(" ");
 }
 
-/** Largura total do ciclo (soma dos blocos + GAP). */
+/** Largura total do ciclo já paddada para múltiplo de CONFIG.WIDTH. */
 export function measureCycle(ctx, goals = getGoals()) {
   const prevFont = ctx.font;
   ctx.font = CONFIG.TICKER.FONT;
-  const blocks = buildBlocks(ctx, goals);
-  const total = blocks.reduce((s, b) => s + b.width, 0);
+  const { cycle } = padCycleForWrap(buildBlocks(ctx, goals));
   ctx.font = prevFont;
-  return total + (CONFIG.TICKER.GAP | 0);
+  return cycle || 1;
 }
 
 // --- Render ---
@@ -222,18 +253,16 @@ export function render(ctx, state) {
     ctx.shadowBlur  = CONFIG.TICKER.SHADOW_BLUR;
   }
 
-  const blocks = buildBlocks(ctx, goals);
-  const total  = blocks.reduce((s, b) => s + b.width, 0);
-  const cycle  = total + (CONFIG.TICKER.GAP | 0);
+  const { blocks: padded, cycle } = padCycleForWrap(buildBlocks(ctx, goals));
   if (cycle <= 0) return;
-  const offset = -((state.progress % 1) * cycle);
+  const offset = Math.floor(-((state.progress % 1) * cycle));
 
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
   ctx.clip();
   for (let x = offset; x < CONFIG.WIDTH + cycle; x += cycle) {
-    drawBlocks(ctx, blocks, x);
+    drawBlocks(ctx, padded, x);
   }
   ctx.restore();
 }

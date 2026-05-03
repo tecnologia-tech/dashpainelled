@@ -25,10 +25,16 @@ export function getIconStatus() {
   return {};
 }
 
+/**
+ * Cycle paddado para múltiplo de CONFIG.WIDTH. Garante emenda perfeita
+ * na borda do canvas para painel circular.
+ */
 function cycleWidth(ctx) {
   const w = Math.ceil(ctx.measureText(currentText).width);
-  const gap = (CONFIG.TICKER.GAP | 0) || FALLBACK_GAP;
-  return w + gap;
+  const minGap = (CONFIG.TICKER.GAP | 0) || FALLBACK_GAP;
+  const natural = w + minGap;
+  const N = Math.max(1, Math.ceil(natural / CONFIG.WIDTH));
+  return N * CONFIG.WIDTH;
 }
 
 export function measureCycle(ctx) {
@@ -68,7 +74,7 @@ export function render(ctx, state) {
 
   const cycle  = cycleWidth(ctx);
   if (cycle <= 0) return;
-  const offset = -((state.progress % 1) * cycle);
+  const offset = Math.floor(-((state.progress % 1) * cycle));
 
   ctx.save();
   ctx.beginPath();
