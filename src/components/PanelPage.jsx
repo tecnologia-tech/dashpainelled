@@ -18,10 +18,23 @@ const MODULE_W = 132;
 const STRIP_Y = 0;
 const STRIP_H = 192; // alinhado a CONFIG.HEIGHT/TICKER.TEXT_Y. Não usar 180 sem reajustar TEXT_Y.
 
+// Compensação horizontal do sinal capturado pelo painel.
+// Painel físico mostra apenas 12/16 módulos quando scaleX=1 → 16/12 = 1.333333
+// estica visualmente o canvas para preencher os 16 módulos.
+const DEFAULT_SCALE_X = 1.333333;
+
 function readParams() {
-  if (typeof window === "undefined") return { test: null, debug: null };
+  if (typeof window === "undefined") {
+    return { test: null, debug: null, scaleX: DEFAULT_SCALE_X };
+  }
   const p = new URLSearchParams(window.location.search);
-  return { test: p.get("test"), debug: p.get("debug") };
+  const raw = p.get("scaleX");
+  let scaleX = DEFAULT_SCALE_X;
+  if (raw !== null && raw !== "") {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) scaleX = n;
+  }
+  return { test: p.get("test"), debug: p.get("debug"), scaleX };
 }
 
 function drawModulesOverlay(ctx) {
@@ -48,7 +61,7 @@ function drawModulesOverlay(ctx) {
 
 export default function PanelPage() {
   const canvasRef = useRef(null);
-  const { test, debug } = readParams();
+  const { test, debug, scaleX } = readParams();
   const isBars = test === "bars";
   const debugModules = debug === "modules";
 
@@ -126,12 +139,13 @@ export default function PanelPage() {
         position: "fixed",
         top: 0,
         left: 0,
-        width: SCREEN_W + "px",
+        width: SCREEN_W * scaleX + "px",
         height: SCREEN_H + "px",
         margin: 0,
         padding: 0,
         background: "#000",
         overflow: "hidden",
+        transformOrigin: "top left",
       }}
     >
       <canvas
@@ -146,6 +160,8 @@ export default function PanelPage() {
           margin: 0,
           padding: 0,
           border: 0,
+          transformOrigin: "top left",
+          transform: `scaleX(${scaleX})`,
         }}
       />
     </div>
