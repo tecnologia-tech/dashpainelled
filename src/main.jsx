@@ -6,11 +6,6 @@ import "./styles.css";
 
 const isLedRoute = window.location.pathname.replace(/\/+$/, "") === "/led";
 
-if (isLedRoute) {
-  document.documentElement.classList.add("led-route");
-  document.body.classList.add("led-route");
-}
-
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     {isLedRoute ? <LedPage /> : <App />}
