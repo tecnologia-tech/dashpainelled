@@ -6,6 +6,7 @@ import DebugHud from "./components/DebugHud.jsx";
 import VideoPlayer from "./components/VideoPlayer.jsx";
 import { getSettings, saveSettings } from "./services/settingsService.js";
 import * as textTickerLayer from "./layers/textTickerLayer.js";
+import * as barsTestLayer from "./layers/barsTestLayer.js";
 
 function buildWelcomeMessage(name) {
   return `BEM-VINDO À TOCA DA PANTERA ${name}. SUA IMPORTAÇÃO COMEÇA AQUI.`;
@@ -14,6 +15,13 @@ function buildWelcomeMessage(name) {
 function detectPanelMode() {
   if (typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).has("panel");
+}
+
+function detectPanelTest() {
+  if (typeof window === "undefined") return null;
+  const p = new URLSearchParams(window.location.search);
+  if (!p.has("panel")) return null;
+  return p.get("test");
 }
 
 function isValidMode(m) {
@@ -49,6 +57,8 @@ const KEY_TO_MODE = {
 export default function App() {
   const [frameCount] = useState(CONFIG.FRAME_COUNT);
   const [isPanelMode] = useState(detectPanelMode);
+  const [panelTest] = useState(detectPanelTest);
+  const isPanelBarsTest = isPanelMode && panelTest === "bars";
   const [displayMode, setDisplayMode] = useState("dash");
   const [activeMode, setActiveMode] = useState(CONFIG.ACTIVE_MODE_DEFAULT);
   const activeModeRef = useRef(activeMode);
@@ -177,7 +187,18 @@ export default function App() {
       )}
 
       <main className="preview-area">
-        {isNormal ? (
+        {isPanelBarsTest ? (
+          <div className="mode-layer">
+            <LedCanvas
+              playing={true}
+              speed={CONFIG.TICKER.SPEED_PX_PER_SECOND}
+              tickerLayer={barsTestLayer}
+              loadGoals={false}
+              width={panelW}
+              height={panelStripH}
+            />
+          </div>
+        ) : isNormal ? (
           <>
             <div className={`mode-layer${isDash ? "" : " mode-hidden"}`}>
               <LedCanvas
