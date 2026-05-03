@@ -29,19 +29,21 @@ export function getIconStatus() {
  * Cycle paddado para múltiplo de CONFIG.WIDTH. Garante emenda perfeita
  * na borda do canvas para painel circular.
  */
-function cycleWidth(ctx) {
+function cycleWidth(ctx, panelWidth) {
+  const W = panelWidth | 0 || CONFIG.WIDTH;
   const w = Math.ceil(ctx.measureText(currentText).width);
   const minGap = (CONFIG.TICKER.GAP | 0) || FALLBACK_GAP;
   const natural = w + minGap;
-  const N = Math.max(1, Math.ceil(natural / CONFIG.WIDTH));
-  return N * CONFIG.WIDTH;
+  const N = Math.max(1, Math.ceil(natural / W));
+  return N * W;
 }
 
-export function measureCycle(ctx) {
+export function measureCycle(ctx, opts = {}) {
   if (!currentText) return 1;
+  const panelWidth = opts.width ?? CONFIG.WIDTH;
   const prevFont = ctx.font;
   ctx.font = CONFIG.TICKER.FONT;
-  const total = cycleWidth(ctx);
+  const total = cycleWidth(ctx, panelWidth);
   ctx.font = prevFont;
   return total;
 }
@@ -72,15 +74,17 @@ export function render(ctx, state) {
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
 
-  const cycle  = cycleWidth(ctx);
+  const W = state?.width  ?? CONFIG.WIDTH;
+  const H = state?.height ?? CONFIG.HEIGHT;
+  const cycle  = cycleWidth(ctx, W);
   if (cycle <= 0) return;
   const offset = Math.floor(-((state.progress % 1) * cycle));
 
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+  ctx.rect(0, 0, W, H);
   ctx.clip();
-  for (let x = offset; x < CONFIG.WIDTH + cycle; x += cycle) {
+  for (let x = offset; x < W + cycle; x += cycle) {
     drawAt(ctx, x);
   }
   ctx.restore();

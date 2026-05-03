@@ -19,11 +19,15 @@ export default function LedCanvas({
   onIconStatus,
   tickerLayer,
   loadGoals = true,
+  width,
+  height,
 }) {
   const ticker = tickerLayer ?? goalsTicker;
   const canvasRef = useRef(null);
   const playingRef = useRef(playing);
   const speedRef = useRef(speed);
+  const W = width  ?? CONFIG.WIDTH;
+  const H = height ?? CONFIG.HEIGHT;
 
   useEffect(() => { playingRef.current = playing; }, [playing]);
   useEffect(() => { speedRef.current  = speed; },   [speed]);
@@ -32,8 +36,8 @@ export default function LedCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.width  = CONFIG.WIDTH;
-    canvas.height = CONFIG.HEIGHT;
+    canvas.width  = W;
+    canvas.height = H;
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
@@ -66,7 +70,7 @@ export default function LedCanvas({
 
       if (playingRef.current) elapsedSec += dt;
 
-      const cycle = ticker.measureCycle(ctx);
+      const cycle = ticker.measureCycle(ctx, { width: W });
       const period = cycle / Math.max(1, speedRef.current);
       const progress = (elapsedSec / period) % 1;
       const offsetX = -(progress * cycle);
@@ -75,8 +79,8 @@ export default function LedCanvas({
       ctx.imageSmoothingQuality = "high";
 
       const state = {
-        width: CONFIG.WIDTH,
-        height: CONFIG.HEIGHT,
+        width: W,
+        height: H,
         progress,
       };
 
@@ -118,7 +122,7 @@ export default function LedCanvas({
       cancelled = true;
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [onMetrics, onGoalsStatus, onIconStatus, ticker, loadGoals]);
+  }, [onMetrics, onGoalsStatus, onIconStatus, ticker, loadGoals, W, H]);
 
   return (
     <div className="led-stage">

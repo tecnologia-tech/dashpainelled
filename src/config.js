@@ -5,6 +5,11 @@ export const CONFIG = {
   WIDTH: 2048,
   HEIGHT: 192,
 
+  // Resolução lógica usada apenas pela rota /led (painel circular).
+  // 170,6666… × 16 = 2730,666…  → arredondado para 2731.
+  LED_PANEL_WIDTH: 2731,
+  LED_PANEL_HEIGHT: 192,
+
   BACKGROUND: {
     TYPE: "image", // "solid" | "image"
     PATH: "/assets/background.png",

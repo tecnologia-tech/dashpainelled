@@ -53,9 +53,9 @@ function fitRect(fit, sw, sh, W, H) {
   return { dx: (W - dw) / 2, dy: (H - dh) / 2, dw, dh };
 }
 
-export function render(ctx /*, state */) {
-  const W = CONFIG.WIDTH;
-  const H = CONFIG.HEIGHT;
+export function render(ctx, state) {
+  const W = state?.width  ?? CONFIG.WIDTH;
+  const H = state?.height ?? CONFIG.HEIGHT;
   const cfg = CONFIG.BACKGROUND;
 
   const baseColor = cfg.TYPE === "solid"

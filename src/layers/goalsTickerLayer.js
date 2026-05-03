@@ -194,12 +194,13 @@ function drawBlocks(ctx, blocks, startX) {
  * on a circular LED panel. Extra width is distributed across BULLET_PAD
  * gaps to avoid a single black hole at end of cycle.
  */
-function padCycleForWrap(blocks) {
+function padCycleForWrap(blocks, panelWidth) {
+  const W = panelWidth | 0 || CONFIG.WIDTH;
   const baseGap = CONFIG.TICKER.GAP | 0;
   const natural = blocks.reduce((s, b) => s + b.width, 0) + baseGap;
   if (natural <= 0) return { blocks, cycle: 0 };
-  const N = Math.max(1, Math.ceil(natural / CONFIG.WIDTH));
-  const target = N * CONFIG.WIDTH;
+  const N = Math.max(1, Math.ceil(natural / W));
+  const target = N * W;
   const extra = target - natural;
   if (extra <= 0) return { blocks, cycle: target };
 
@@ -230,11 +231,17 @@ export function buildText(goals = getGoals()) {
   }).join(" ");
 }
 
-/** Largura total do ciclo já paddada para múltiplo de CONFIG.WIDTH. */
-export function measureCycle(ctx, goals = getGoals()) {
+/**
+ * Largura total do ciclo já paddada para múltiplo da largura do painel.
+ * Aceita opcionalmente { width, goals } para suportar resoluções diferentes
+ * (rota /led usa CONFIG.LED_PANEL_WIDTH, dashboard usa CONFIG.WIDTH).
+ */
+export function measureCycle(ctx, opts = {}) {
+  const goals = opts.goals ?? getGoals();
+  const panelWidth = opts.width ?? CONFIG.WIDTH;
   const prevFont = ctx.font;
   ctx.font = CONFIG.TICKER.FONT;
-  const { cycle } = padCycleForWrap(buildBlocks(ctx, goals));
+  const { cycle } = padCycleForWrap(buildBlocks(ctx, goals), panelWidth);
   ctx.font = prevFont;
   return cycle || 1;
 }
@@ -253,15 +260,17 @@ export function render(ctx, state) {
     ctx.shadowBlur  = CONFIG.TICKER.SHADOW_BLUR;
   }
 
-  const { blocks: padded, cycle } = padCycleForWrap(buildBlocks(ctx, goals));
+  const W = state?.width  ?? CONFIG.WIDTH;
+  const H = state?.height ?? CONFIG.HEIGHT;
+  const { blocks: padded, cycle } = padCycleForWrap(buildBlocks(ctx, goals), W);
   if (cycle <= 0) return;
   const offset = Math.floor(-((state.progress % 1) * cycle));
 
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+  ctx.rect(0, 0, W, H);
   ctx.clip();
-  for (let x = offset; x < CONFIG.WIDTH + cycle; x += cycle) {
+  for (let x = offset; x < W + cycle; x += cycle) {
     drawBlocks(ctx, padded, x);
   }
   ctx.restore();

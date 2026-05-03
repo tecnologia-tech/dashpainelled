@@ -8,6 +8,8 @@ export default function LedPage() {
         <LedCanvas
           playing={true}
           speed={CONFIG.TICKER.SPEED_PX_PER_SECOND}
+          width={CONFIG.LED_PANEL_WIDTH}
+          height={CONFIG.LED_PANEL_HEIGHT}
         />
       </div>
     </div>
