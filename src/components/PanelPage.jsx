@@ -24,7 +24,7 @@ import * as barsTest from "../layers/barsTestLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 import { getSettings, saveSettings } from "../services/settingsService.js";
 
-const COLAB_MESSAGE = "SEJAM BEM VINDOS A TOCA DA PANTERA";
+const COLAB_MESSAGE = "Parabéns seu Tomé pela sua décima importação!";
 
 const REF_W = 2048;
 const REF_H = 192;
