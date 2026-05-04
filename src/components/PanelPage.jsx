@@ -18,13 +18,13 @@
 import { useEffect, useRef, useState } from "react";
 import { CONFIG } from "../config.js";
 import * as background from "../layers/backgroundLayer.js";
-import * as goalsTicker from "../layers/goalsTickerLayer.js";
-import * as colaboradorTickerLayer from "../layers/colaboradorTickerLayer.js";
 import * as barsTest from "../layers/barsTestLayer.js";
+import * as colaboradorTickerLayer from "../layers/colaboradorTickerLayer.js";
+import * as goalsTicker from "../layers/goalsTickerLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 import { getSettings, saveSettings } from "../services/settingsService.js";
 
-const COLAB_MESSAGE = "Parabéns seu Tomé pela sua décima importação!";
+const COLAB_MESSAGE = "Parabéns Sr Tomé pela sua décima importação!";
 
 const REF_W = 2048;
 const REF_H = 192;
@@ -44,7 +44,9 @@ const KEY_TO_MODE = {
   F20: CONFIG.MODES.NUT_DAY,
   F21: CONFIG.MODES.PANTERA_VIDEO,
 };
-function normalizeMode(m) { return LEGACY_MODE_ALIAS[m] ?? m; }
+function normalizeMode(m) {
+  return LEGACY_MODE_ALIAS[m] ?? m;
+}
 function isValidMode(m) {
   return typeof m === "string" && Object.values(CONFIG.MODES).includes(m);
 }
@@ -69,8 +71,16 @@ function readParams() {
   return {
     test: p.get("test"),
     debug: p.get("debug"),
-    bandMul: numParam(p, "bandMul", DEFAULT_BAND_MUL, (n) => Number.isFinite(n) && n > 0),
-    cycleGap: Math.max(0, Math.round(numParam(p, "cycleGap", DEFAULT_CYCLE_GAP))),
+    bandMul: numParam(
+      p,
+      "bandMul",
+      DEFAULT_BAND_MUL,
+      (n) => Number.isFinite(n) && n > 0,
+    ),
+    cycleGap: Math.max(
+      0,
+      Math.round(numParam(p, "cycleGap", DEFAULT_CYCLE_GAP)),
+    ),
   };
 }
 
@@ -105,32 +115,45 @@ export default function PanelPage() {
 
   const [activeMode, setActiveMode] = useState(CONFIG.ACTIVE_MODE_DEFAULT);
   const activeModeRef = useRef(activeMode);
-  useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
+  useEffect(() => {
+    activeModeRef.current = activeMode;
+  }, [activeMode]);
   const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
-  const isWelcomeColaborador = activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
+  const isWelcomeColaborador =
+    activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
 
   const [viewportW, setViewportW] = useState(
-    typeof window !== "undefined" ? window.innerWidth : REF_W
+    typeof window !== "undefined" ? window.innerWidth : REF_W,
   );
   useEffect(() => {
-    function onResize() { setViewportW(window.innerWidth); }
+    function onResize() {
+      setViewportW(window.innerWidth);
+    }
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-  const bandH = Math.max(1, Math.round(viewportW * REF_H / REF_W * bandMul));
+  const bandH = Math.max(
+    1,
+    Math.round(((viewportW * REF_H) / REF_W) * bandMul),
+  );
 
   useEffect(() => {
     let cancelled = false;
     function loadOnce() {
-      getSettings().then((s) => {
-        if (cancelled) return;
-        const m = normalizeMode(s.activeMode);
-        if (isValidMode(m) && m !== activeModeRef.current) setActiveMode(m);
-      }).catch(() => {});
+      getSettings()
+        .then((s) => {
+          if (cancelled) return;
+          const m = normalizeMode(s.activeMode);
+          if (isValidMode(m) && m !== activeModeRef.current) setActiveMode(m);
+        })
+        .catch(() => {});
     }
     loadOnce();
     const id = setInterval(loadOnce, 2000);
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
 
   useEffect(() => {
@@ -170,7 +193,7 @@ export default function PanelPage() {
     function resize() {
       const dpr = window.devicePixelRatio || 1;
       const w = window.innerWidth;
-      const h = Math.max(1, Math.round(w * REF_H / REF_W * bandMul));
+      const h = Math.max(1, Math.round(((w * REF_H) / REF_W) * bandMul));
       canvas.style.width = "100vw";
       canvas.style.height = `${h}px`;
       canvas.width = Math.round(w * dpr);
@@ -228,9 +251,14 @@ export default function PanelPage() {
         bandCtx.clearRect(0, 0, W, bandH);
         barsTest.render(bandCtx, { width: W, height: bandH, progress: 0 });
       } else {
-        const tickerSrc = isWelcomeColaborador ? colaboradorTickerLayer : goalsTicker;
+        const tickerSrc = isWelcomeColaborador
+          ? colaboradorTickerLayer
+          : goalsTicker;
         bandCtx.font = CONFIG.TICKER.FONT;
-        const naturalCycle = Math.max(1, Math.round(tickerSrc.measureCycle(bandCtx, bandH)));
+        const naturalCycle = Math.max(
+          1,
+          Math.round(tickerSrc.measureCycle(bandCtx, bandH)),
+        );
         const cycleW = naturalCycle + cycleGap;
 
         ensureSize(cycleCanvas, cycleW, bandH);
@@ -238,12 +266,18 @@ export default function PanelPage() {
         cycleCtx.imageSmoothingEnabled = true;
         cycleCtx.imageSmoothingQuality = "high";
         cycleCtx.clearRect(0, 0, cycleW, bandH);
-        tickerSrc.render(cycleCtx, { width: naturalCycle, height: bandH, progress: 0 });
+        tickerSrc.render(cycleCtx, {
+          width: naturalCycle,
+          height: bandH,
+          progress: 0,
+        });
 
         bandCtx.clearRect(0, 0, W, bandH);
         background.render(bandCtx, { width: W, height: bandH, progress: 0 });
 
-        const offset = Math.floor(((elapsedSec * speed) % cycleW + cycleW) % cycleW);
+        const offset = Math.floor(
+          (((elapsedSec * speed) % cycleW) + cycleW) % cycleW,
+        );
         for (let x = -offset; x < W; x += cycleW) {
           bandCtx.drawImage(cycleCanvas, x, 0);
         }
@@ -296,7 +330,15 @@ export default function PanelPage() {
       window.removeEventListener("resize", resize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [isBars, debugModules, debugSeam, bandMul, cycleGap, isPanteraVideo, isWelcomeColaborador]);
+  }, [
+    isBars,
+    debugModules,
+    debugSeam,
+    bandMul,
+    cycleGap,
+    isPanteraVideo,
+    isWelcomeColaborador,
+  ]);
 
   const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
 
