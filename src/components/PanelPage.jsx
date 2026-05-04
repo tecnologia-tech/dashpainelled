@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { CONFIG } from "../config.js";
 import * as background from "../layers/backgroundLayer.js";
 import * as goalsTicker from "../layers/goalsTickerLayer.js";
-import * as textTickerLayer from "../layers/textTickerLayer.js";
+import * as colaboradorTickerLayer from "../layers/colaboradorTickerLayer.js";
 import * as barsTest from "../layers/barsTestLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 import { getSettings, saveSettings } from "../services/settingsService.js";
@@ -187,7 +187,8 @@ export default function PanelPage() {
 
     const bgPromise = background.ensureLoaded();
     goalsTicker.ensureLoaded?.();
-    textTickerLayer.setText(COLAB_MESSAGE);
+    colaboradorTickerLayer.setText(COLAB_MESSAGE);
+    const colabImgPromise = colaboradorTickerLayer.ensureLoaded();
     if (!isBars && !isWelcomeColaborador) ensureGoals();
 
     let raf;
@@ -227,9 +228,9 @@ export default function PanelPage() {
         bandCtx.clearRect(0, 0, W, bandH);
         barsTest.render(bandCtx, { width: W, height: bandH, progress: 0 });
       } else {
-        const tickerSrc = isWelcomeColaborador ? textTickerLayer : goalsTicker;
+        const tickerSrc = isWelcomeColaborador ? colaboradorTickerLayer : goalsTicker;
         bandCtx.font = CONFIG.TICKER.FONT;
-        const naturalCycle = Math.max(1, Math.round(tickerSrc.measureCycle(bandCtx)));
+        const naturalCycle = Math.max(1, Math.round(tickerSrc.measureCycle(bandCtx, bandH)));
         const cycleW = naturalCycle + cycleGap;
 
         ensureSize(cycleCanvas, cycleW, bandH);
@@ -285,6 +286,7 @@ export default function PanelPage() {
     (async () => {
       if (document.fonts) await document.fonts.ready;
       await bgPromise;
+      if (isWelcomeColaborador) await colabImgPromise;
       if (cancelled) return;
       raf = requestAnimationFrame(loop);
     })();
