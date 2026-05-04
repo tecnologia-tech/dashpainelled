@@ -19,9 +19,12 @@ import { useEffect, useRef, useState } from "react";
 import { CONFIG } from "../config.js";
 import * as background from "../layers/backgroundLayer.js";
 import * as goalsTicker from "../layers/goalsTickerLayer.js";
+import * as textTickerLayer from "../layers/textTickerLayer.js";
 import * as barsTest from "../layers/barsTestLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 import { getSettings, saveSettings } from "../services/settingsService.js";
+
+const COLAB_MESSAGE = "SEJAM BEM VINDOS A TOCA DA PANTERA";
 
 const REF_W = 2048;
 const REF_H = 192;
@@ -104,6 +107,7 @@ export default function PanelPage() {
   const activeModeRef = useRef(activeMode);
   useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
   const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
+  const isWelcomeColaborador = activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
 
   const [viewportW, setViewportW] = useState(
     typeof window !== "undefined" ? window.innerWidth : REF_W
@@ -183,7 +187,8 @@ export default function PanelPage() {
 
     const bgPromise = background.ensureLoaded();
     goalsTicker.ensureLoaded?.();
-    if (!isBars) ensureGoals();
+    textTickerLayer.setText(COLAB_MESSAGE);
+    if (!isBars && !isWelcomeColaborador) ensureGoals();
 
     let raf;
     let cancelled = false;
@@ -222,8 +227,9 @@ export default function PanelPage() {
         bandCtx.clearRect(0, 0, W, bandH);
         barsTest.render(bandCtx, { width: W, height: bandH, progress: 0 });
       } else {
+        const tickerSrc = isWelcomeColaborador ? textTickerLayer : goalsTicker;
         bandCtx.font = CONFIG.TICKER.FONT;
-        const naturalCycle = Math.max(1, Math.round(goalsTicker.measureCycle(bandCtx)));
+        const naturalCycle = Math.max(1, Math.round(tickerSrc.measureCycle(bandCtx)));
         const cycleW = naturalCycle + cycleGap;
 
         ensureSize(cycleCanvas, cycleW, bandH);
@@ -231,7 +237,7 @@ export default function PanelPage() {
         cycleCtx.imageSmoothingEnabled = true;
         cycleCtx.imageSmoothingQuality = "high";
         cycleCtx.clearRect(0, 0, cycleW, bandH);
-        goalsTicker.render(cycleCtx, { width: naturalCycle, height: bandH, progress: 0 });
+        tickerSrc.render(cycleCtx, { width: naturalCycle, height: bandH, progress: 0 });
 
         bandCtx.clearRect(0, 0, W, bandH);
         background.render(bandCtx, { width: W, height: bandH, progress: 0 });
@@ -288,7 +294,7 @@ export default function PanelPage() {
       window.removeEventListener("resize", resize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [isBars, debugModules, debugSeam, bandMul, cycleGap, isPanteraVideo]);
+  }, [isBars, debugModules, debugSeam, bandMul, cycleGap, isPanteraVideo, isWelcomeColaborador]);
 
   const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
 
