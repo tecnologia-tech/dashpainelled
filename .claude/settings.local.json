@@ -3,7 +3,12 @@
     "allow": [
       "Bash(npx vite *)",
       "Bash(node --check src/config.js)",
-      "Bash(node --check server/server.js)"
+      "Bash(node --check server/server.js)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:5180/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://127.0.0.1:5180/?panel\")",
+      "Bash(curl -s http://127.0.0.1:5180/)",
+      "Bash(kill %1)",
+      "Bash(kill 916 924)"
     ]
   }
 }

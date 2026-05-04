@@ -1,30 +1,46 @@
-// PanelPage.jsx
-// Render do painel circular via espelhamento de tela. Canvas full-screen
-// (100vw × 100vh) — 16 módulos recebem pixels úteis via tile vertical.
-//
-// Pipeline:
-//   1) cycleCanvas (offscreen, cycleWidth × bandH): renderiza UM ciclo
-//      fechado do ticker (ícone+texto+separador). Bg transparente.
-//   2) bandCanvas  (offscreen, W × bandH): bg full-width + drawImage do
-//      cycleCanvas tilado horizontalmente em offsets inteiros.
-//   3) main canvas (W × H): drawImage do bandCanvas tilado verticalmente.
-//
-// Vantagem: cada ciclo é bit-exact (drawImage de bitmap, não re-render
-// de texto), então emenda do loop X é pixel-perfect, sem deriva sub-pixel.
-//
-// Sem stretch vertical. Sem áreas pretas (tile cobre H inteiro).
-// Debug só com ?debug=modules.
-
 import { useEffect, useRef, useState } from "react";
 import { CONFIG } from "../config.js";
 import * as background from "../layers/backgroundLayer.js";
 import * as barsTest from "../layers/barsTestLayer.js";
 import * as colaboradorTickerLayer from "../layers/colaboradorTickerLayer.js";
 import * as goalsTicker from "../layers/goalsTickerLayer.js";
+import * as textTickerLayer from "../layers/textTickerLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 import { getSettings, saveSettings } from "../services/settingsService.js";
 
-const COLAB_MESSAGE = "Parabéns Sr Tomé pela sua décima importação!";
+const COLAB_MESSAGE = "SEJAM BEM VINDOS A TOCA DA PANTERA";
+
+function buildWelcomeMessage(name) {
+  return `BEM-VINDO À TOCA DA PANTERA ${name}. SUA IMPORTAÇÃO COMEÇA AQUI.`;
+}
+
+const MODE_OVERLAY_LABELS = {
+  sino: "Modo Sino",
+  lastDance: "Modo Last Dance",
+  blackFriday: "Modo Black Friday",
+  together: "Modo Together",
+  nutDay: "Modo NutDay",
+};
+
+function drawModeOverlay(ctx, W, H, label) {
+  ctx.save();
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  const fontSize = Math.max(40, Math.round(H * 0.42));
+  ctx.font = `900 ${fontSize}px Montserrat, Arial, sans-serif`;
+  ctx.lineJoin = "round";
+  ctx.miterLimit = 2;
+  ctx.shadowColor = "rgba(0,0,0,0.85)";
+  ctx.shadowBlur = Math.round(H * 0.06);
+  ctx.lineWidth = Math.max(6, Math.round(fontSize * 0.14));
+  ctx.strokeStyle = "#000";
+  ctx.strokeText(label, W / 2, H / 2);
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#FFD200";
+  ctx.fillText(label, W / 2, H / 2);
+  ctx.restore();
+}
 
 const REF_W = 2048;
 const REF_H = 192;
@@ -106,14 +122,21 @@ function drawModulesOverlay(ctx, W, H) {
   ctx.restore();
 }
 
-export default function PanelPage() {
+export default function PanelPage({
+  embedded = false,
+  activeMode: controlledMode,
+  welcomeName = "",
+} = {}) {
   const canvasRef = useRef(null);
   const { test, debug, bandMul, cycleGap } = readParams();
   const isBars = test === "bars";
   const debugModules = debug === "modules";
   const debugSeam = debug === "seam";
 
-  const [activeMode, setActiveMode] = useState(CONFIG.ACTIVE_MODE_DEFAULT);
+  const isControlled = controlledMode != null;
+  const [internalMode, setInternalMode] = useState(CONFIG.ACTIVE_MODE_DEFAULT);
+  const activeMode = isControlled ? controlledMode : internalMode;
+  const setActiveMode = setInternalMode;
   const activeModeRef = useRef(activeMode);
   useEffect(() => {
     activeModeRef.current = activeMode;
@@ -121,23 +144,30 @@ export default function PanelPage() {
   const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
   const isWelcomeColaborador =
     activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
+  const isWelcomeCliente =
+    activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE && !!welcomeName;
 
-  const [viewportW, setViewportW] = useState(
-    typeof window !== "undefined" ? window.innerWidth : REF_W,
-  );
+  const PANEL_W = CONFIG.PANEL_SIGNAL?.WIDTH ?? 2112;
+  const [viewportW, setViewportW] = useState(() => {
+    if (embedded && typeof window !== "undefined") return window.innerWidth;
+    return PANEL_W;
+  });
   useEffect(() => {
+    if (!embedded) return;
     function onResize() {
       setViewportW(window.innerWidth);
     }
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [embedded]);
+  const bandW = embedded ? viewportW : PANEL_W;
   const bandH = Math.max(
     1,
-    Math.round(((viewportW * REF_H) / REF_W) * bandMul),
+    Math.round(((bandW * REF_H) / REF_W) * bandMul),
   );
 
   useEffect(() => {
+    if (isControlled) return;
     let cancelled = false;
     function loadOnce() {
       getSettings()
@@ -154,9 +184,10 @@ export default function PanelPage() {
       cancelled = true;
       clearInterval(id);
     };
-  }, []);
+  }, [isControlled]);
 
   useEffect(() => {
+    if (isControlled) return;
     function onKeyDown(e) {
       const mode = KEY_TO_MODE[e.key];
       if (!mode) return;
@@ -175,7 +206,13 @@ export default function PanelPage() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [isControlled]);
+
+  useEffect(() => {
+    if (isWelcomeCliente) {
+      textTickerLayer.setText(buildWelcomeMessage(welcomeName));
+    }
+  }, [isWelcomeCliente, welcomeName]);
 
   useEffect(() => {
     if (isPanteraVideo) return;
@@ -192,9 +229,12 @@ export default function PanelPage() {
 
     function resize() {
       const dpr = window.devicePixelRatio || 1;
-      const w = window.innerWidth;
+      const parent = canvas.parentElement;
+      const w = embedded
+        ? (parent ? parent.clientWidth : window.innerWidth)
+        : PANEL_W;
       const h = Math.max(1, Math.round(((w * REF_H) / REF_W) * bandMul));
-      canvas.style.width = "100vw";
+      canvas.style.width = embedded ? "100%" : `${w}px`;
       canvas.style.height = `${h}px`;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
@@ -247,13 +287,21 @@ export default function PanelPage() {
       bandCtx.imageSmoothingEnabled = true;
       bandCtx.imageSmoothingQuality = "high";
 
+      const overlayLabel = MODE_OVERLAY_LABELS[activeModeRef.current];
+
       if (isBars) {
         bandCtx.clearRect(0, 0, W, bandH);
         barsTest.render(bandCtx, { width: W, height: bandH, progress: 0 });
+      } else if (overlayLabel) {
+        bandCtx.clearRect(0, 0, W, bandH);
+        background.render(bandCtx, { width: W, height: bandH, progress: 0 });
+        drawModeOverlay(bandCtx, W, bandH, overlayLabel);
       } else {
         const tickerSrc = isWelcomeColaborador
           ? colaboradorTickerLayer
-          : goalsTicker;
+          : isWelcomeCliente
+            ? textTickerLayer
+            : goalsTicker;
         bandCtx.font = CONFIG.TICKER.FONT;
         const naturalCycle = Math.max(
           1,
@@ -338,13 +386,24 @@ export default function PanelPage() {
     cycleGap,
     isPanteraVideo,
     isWelcomeColaborador,
+    isWelcomeCliente,
+    embedded,
+    PANEL_W,
   ]);
 
   const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
 
-  return (
-    <div
-      style={{
+  const outerStyle = embedded
+    ? {
+        position: "relative",
+        width: "100%",
+        height: `${bandH}px`,
+        margin: 0,
+        padding: 0,
+        background: "#000",
+        overflow: "hidden",
+      }
+    : {
         position: "fixed",
         top: 0,
         left: 0,
@@ -354,8 +413,12 @@ export default function PanelPage() {
         padding: 0,
         background: "#000",
         overflow: "hidden",
-      }}
-    >
+      };
+
+  const innerWidth = embedded ? "100%" : `${PANEL_W}px`;
+
+  return (
+    <div style={outerStyle}>
       {isPanteraVideo ? (
         <video
           src={panteraPath}
@@ -368,7 +431,7 @@ export default function PanelPage() {
             top: 0,
             left: 0,
             display: "block",
-            width: "100vw",
+            width: innerWidth,
             height: `${bandH}px`,
             objectFit: "cover",
             background: "#000",
@@ -385,7 +448,7 @@ export default function PanelPage() {
             top: 0,
             left: 0,
             display: "block",
-            width: "100vw",
+            width: innerWidth,
             height: `${bandH}px`,
             margin: 0,
             padding: 0,

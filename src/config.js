@@ -175,7 +175,7 @@ export const CONFIG = {
   },
 
   MODE_LABELS: {
-    normal: "Normal",
+    normal: "Metas",
     sino: "Sino",
     lastDance: "Last Dance",
     blackFriday: "Black Friday",

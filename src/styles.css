@@ -35,28 +35,29 @@ html, body, #root {
 .app-layout {
   width: 100vw;
   height: 100vh;
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: column;
   background: #000;
   overflow: hidden;
 }
 
 .controls-area {
+  margin-top: auto;
   position: relative;
   z-index: 20;
   width: 100%;
   padding: 10px 16px;
   box-sizing: border-box;
-  background: linear-gradient(180deg, #111 0%, #050505 100%);
-  border-bottom: 2px solid #ffd200;
-  box-shadow: 0 0 18px rgba(255, 210, 0, 0.25);
+  background: linear-gradient(180deg, #050505 0%, #111 100%);
+  border-top: 2px solid #ffd200;
+  box-shadow: 0 -4px 18px rgba(255, 210, 0, 0.25);
 }
 
 .preview-area {
+  flex: 0 0 auto;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
+  display: block;
   overflow: hidden;
 }
 

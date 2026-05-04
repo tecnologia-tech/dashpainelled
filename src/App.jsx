@@ -1,15 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { CONFIG } from "./config.js";
-import LedCanvas from "./components/LedCanvas.jsx";
 import ControlPanel from "./components/ControlPanel.jsx";
-import DebugHud from "./components/DebugHud.jsx";
-import VideoPlayer from "./components/VideoPlayer.jsx";
+import PanelPage from "./components/PanelPage.jsx";
 import { getSettings, saveSettings } from "./services/settingsService.js";
-import * as textTickerLayer from "./layers/textTickerLayer.js";
-
-function buildWelcomeMessage(name) {
-  return `BEM-VINDO À TOCA DA PANTERA ${name}. SUA IMPORTAÇÃO COMEÇA AQUI.`;
-}
 
 function isValidMode(m) {
   return typeof m === "string" && Object.values(CONFIG.MODES).includes(m);
@@ -43,21 +36,10 @@ const KEY_TO_MODE = {
 };
 
 export default function App() {
-  const [frameCount] = useState(CONFIG.FRAME_COUNT);
-  const [displayMode, setDisplayMode] = useState("dash");
   const [activeMode, setActiveMode] = useState(CONFIG.ACTIVE_MODE_DEFAULT);
   const activeModeRef = useRef(activeMode);
   useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
 
-  const [metrics, setMetrics] = useState({
-    fps: 0,
-    progress: 0,
-    cycle: 0,
-    offsetX: 0,
-  });
-
-  const [goalsStatus, setGoalsStatus] = useState("idle");
-  const [iconStatus, setIconStatus] = useState({});
   const [welcomeName, setWelcomeName] = useState("");
   const [welcomeModalOpen, setWelcomeModalOpen] = useState(false);
   const [welcomeDraft, setWelcomeDraft] = useState("");
@@ -102,9 +84,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activateMode]);
 
-  const isNormal = activeMode === CONFIG.MODES.NORMAL;
   const isWelcomeCliente = activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
-  const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
 
   useEffect(() => {
     if (isWelcomeCliente) {
@@ -115,117 +95,32 @@ export default function App() {
     }
   }, [isWelcomeCliente]);
 
-  useEffect(() => {
-    if (isWelcomeCliente && welcomeName) {
-      textTickerLayer.setText(buildWelcomeMessage(welcomeName));
-    }
-  }, [isWelcomeCliente, welcomeName]);
-
   function submitWelcomeName(e) {
     e?.preventDefault?.();
     const trimmed = welcomeDraft.trim();
     if (!trimmed) return;
     setWelcomeName(trimmed);
-    textTickerLayer.setText(buildWelcomeMessage(trimmed));
     setWelcomeModalOpen(false);
   }
 
-  useEffect(() => {
-    if (!CONFIG.DISPLAY_ROTATION.ENABLED) return;
-    if (!isNormal) return;
-    const ms = displayMode === "dash"
-      ? CONFIG.DISPLAY_ROTATION.DASH_DURATION_MS
-      : CONFIG.DISPLAY_ROTATION.VIDEO_DURATION_MS;
-    const id = setTimeout(() => {
-      setDisplayMode((prev) => (prev === "dash" ? "video" : "dash"));
-    }, ms);
-    return () => clearTimeout(id);
-  }, [displayMode, isNormal]);
-
-  const isDash = displayMode === "dash";
-  const isVideo = displayMode === "video";
-  const videoKey = CONFIG.MODE_TO_VIDEO_KEY[activeMode] ?? "NORMAL";
-  const videoPath = CONFIG.VIDEO_MODES[videoKey]?.path ?? CONFIG.VIDEO_MODES.NORMAL.path;
-  const placeholderText = CONFIG.MODE_PLACEHOLDERS[activeMode] ?? activeMode;
-
   return (
     <div className="app-layout">
+      <main className="preview-area">
+        <PanelPage
+          embedded
+          activeMode={activeMode}
+          welcomeName={welcomeName}
+        />
+      </main>
+
       {CONFIG.SHOW_CONTROLS && (
-        <header className="controls-area">
+        <footer className="controls-area">
           <ControlPanel
             activeMode={activeMode}
             activateMode={activateMode}
           />
-        </header>
+        </footer>
       )}
-
-      <main className="preview-area">
-        {isNormal ? (
-          <>
-            <div className={`mode-layer${isDash ? "" : " mode-hidden"}`}>
-              <LedCanvas
-                playing={true}
-                speed={CONFIG.TICKER.SPEED_PX_PER_SECOND}
-                onMetrics={setMetrics}
-                onGoalsStatus={setGoalsStatus}
-                onIconStatus={setIconStatus}
-              />
-              {CONFIG.SHOW_DEBUG && (
-                <DebugHud
-                  metrics={metrics}
-                  speed={CONFIG.TICKER.SPEED_PX_PER_SECOND}
-                  frameCount={frameCount}
-                  goalsStatus={goalsStatus}
-                  iconStatus={iconStatus}
-                />
-              )}
-            </div>
-
-            {CONFIG.DISPLAY_ROTATION.ENABLED && (
-              <div className={`mode-layer${isVideo ? "" : " mode-hidden"}`}>
-                <VideoPlayer active={isVideo} videoPath={videoPath} />
-              </div>
-            )}
-          </>
-        ) : isWelcomeCliente && welcomeName ? (
-          <LedCanvas
-            playing={true}
-            speed={CONFIG.TICKER.SPEED_PX_PER_SECOND}
-            onMetrics={setMetrics}
-            tickerLayer={textTickerLayer}
-            loadGoals={false}
-          />
-        ) : isPanteraVideo ? (
-          <div className="mode-layer">
-            <VideoPlayer active={true} videoPath={videoPath} />
-          </div>
-        ) : (
-          <svg
-            className="mode-placeholder"
-            data-mode={activeMode}
-            viewBox={`0 0 ${CONFIG.WIDTH} ${CONFIG.HEIGHT}`}
-            preserveAspectRatio="xMidYMid meet"
-          >
-            <rect x="0" y="0" width={CONFIG.WIDTH} height={CONFIG.HEIGHT} fill="#000" />
-            <text
-              x={CONFIG.WIDTH / 2}
-              y={CONFIG.HEIGHT / 2}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontFamily='Montserrat, Arial, sans-serif'
-              fontWeight="900"
-              fontSize="120"
-              letterSpacing="6"
-              fill="#ffd200"
-              style={{ color: "#ffd200", filter: "drop-shadow(0 0 3px currentColor)" }}
-              lengthAdjust="spacingAndGlyphs"
-              textLength={Math.min(CONFIG.WIDTH - 80, placeholderText.length * 90)}
-            >
-              {placeholderText}
-            </text>
-          </svg>
-        )}
-      </main>
 
       {welcomeModalOpen && (
         <div className="modal-backdrop" role="dialog" aria-modal="true">
