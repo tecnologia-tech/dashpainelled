@@ -213,6 +213,96 @@ export function measureCycle(ctx, opts = {}) {
   return cycle || 1;
 }
 
+function makeTextItem(text, color, x, w) {
+  return {
+    type: "text",
+    x,
+    w,
+    draw(ctx, drawX) {
+      ctx.font = CONFIG.TICKER.FONT;
+      ctx.textBaseline = "alphabetic";
+      ctx.textAlign = "left";
+      if (CONFIG.TICKER.SHADOW) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = CONFIG.TICKER.SHADOW_BLUR;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
+      if (CONFIG.TICKER.STROKE) {
+        ctx.lineWidth = CONFIG.TICKER.STROKE_WIDTH;
+        ctx.strokeStyle = CONFIG.TICKER.STROKE_COLOR;
+        ctx.lineJoin = "round";
+        ctx.miterLimit = 2;
+        ctx.strokeText(text, drawX, CONFIG.TICKER.TEXT_Y);
+      }
+      ctx.fillStyle = color;
+      ctx.fillText(text, drawX, CONFIG.TICKER.TEXT_Y);
+    },
+  };
+}
+
+function makeIconItem(key, x, w) {
+  return {
+    type: "icon",
+    x,
+    w,
+    draw(ctx, drawX) {
+      if (!iconReady(key)) return;
+      const cfg = CONFIG.ICONS[key];
+      const slot = CONFIG.ICON_SLOT;
+      const entry = icons[key];
+      const scale = cfg.SCALE ?? 1;
+      const boxW = slot.WIDTH * scale;
+      const boxH = slot.HEIGHT * scale;
+      const nat = entry.img;
+      const ratio =
+        nat.naturalWidth && nat.naturalHeight
+          ? nat.naturalWidth / nat.naturalHeight
+          : 1;
+      let drawW = boxW;
+      let drawH = boxW / ratio;
+      if (drawH > boxH) {
+        drawH = boxH;
+        drawW = boxH * ratio;
+      }
+      const dX = drawX + (slot.WIDTH - drawW) / 2 + (cfg.OFFSET_X || 0);
+      const dY = slot.Y + (slot.HEIGHT - drawH) / 2 + (cfg.OFFSET_Y || 0);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      if (cfg.FLIP_X) {
+        ctx.save();
+        ctx.translate(dX + drawW, dY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(entry.img, 0, 0, drawW, drawH);
+        ctx.restore();
+      } else {
+        ctx.drawImage(entry.img, dX, dY, drawW, drawH);
+      }
+    },
+  };
+}
+
+/** Lista plana de itens com posição absoluta. Total inclui gaps. */
+export function getItems(ctx, _H, opts = {}) {
+  const goals = opts.goals ?? getGoals();
+  const prevFont = ctx.font;
+  ctx.font = CONFIG.TICKER.FONT;
+  const blocks = buildBlocks(ctx, goals);
+  const items = [];
+  let x = 0;
+  for (const b of blocks) {
+    if (b.type === "text") {
+      items.push(makeTextItem(b.text, b.color || CONFIG.TICKER.COLOR, x, b.width));
+    } else if (b.type === "icon") {
+      items.push(makeIconItem(b.key, x, b.width));
+    }
+    x += b.width;
+  }
+  x += CONFIG.TICKER.GAP | 0;
+  ctx.font = prevFont;
+  return { items, total: Math.max(1, x) };
+}
+
 // --- Render ---
 
 export function render(ctx, state) {

@@ -61,76 +61,55 @@ html, body, #root {
   overflow: hidden;
 }
 
-/* Painel LED — esteira horizontal infinita.
-   Área fixa 2112x192. Container animado 4224px desloca exatamente -2112px.
-   Conteúdo duplicado em dois .loop idênticos garante emenda contínua. */
+/* Painel LED — área fixa 2112x192, render 1:1 sem DPR/scale/zoom. */
 .ledScreen {
   position: fixed;
   left: 0;
   top: 0;
-  width: var(--panel-w, 2112px);
-  height: var(--panel-h, 192px);
+  width: 2112px;
+  height: 192px;
+  min-width: 2112px;
+  max-width: 2112px;
+  min-height: 192px;
+  max-height: 192px;
   overflow: hidden;
   background: #000;
   z-index: 10;
+  transform: none;
+  scale: 1;
+  zoom: 1;
 }
 
-.ledScreen .ticker {
-  display: flex;
-  width: calc(var(--panel-w, 2112px) * 2);
-  height: var(--panel-h, 192px);
-  animation: ledScroll var(--duration, 11.733s) linear infinite;
-  will-change: transform;
-}
-
-.ledScreen .loop {
-  position: relative;
-  flex: 0 0 var(--panel-w, 2112px);
-  width: var(--panel-w, 2112px);
-  height: var(--panel-h, 192px);
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.ledScreen .loop > canvas {
+.ledScreen .ledCanvas {
   position: absolute;
   left: 0;
   top: 0;
-  width: var(--panel-w, 2112px);
-  height: var(--panel-h, 192px);
+  width: 2112px;
+  height: 192px;
+  min-width: 2112px;
+  max-width: 2112px;
+  min-height: 192px;
+  max-height: 192px;
   display: block;
-}
-
-.ledScreen .ledStaticCanvas {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: var(--panel-w, 2112px);
-  height: var(--panel-h, 192px);
-  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  transform: none;
+  scale: 1;
+  zoom: 1;
 }
 
 .ledScreen .ledVideo {
   position: absolute;
   left: 0;
   top: 0;
-  width: var(--panel-w, 2112px);
-  height: var(--panel-h, 192px);
+  width: 2112px;
+  height: 192px;
   display: block;
-  object-fit: cover;
   background: #000;
   border: 0;
   margin: 0;
   padding: 0;
-}
-
-@keyframes ledScroll {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(calc(var(--panel-w, 2112px) * -1), 0, 0);
-  }
 }
 
 .led-stage {

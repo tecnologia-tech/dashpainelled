@@ -93,10 +93,17 @@ function drawModulesOverlay(ctx, W, H) {
   ctx.restore();
 }
 
-function ensureSize(c, w, h) {
-  if (c.width !== w || c.height !== h) {
-    c.width = w;
-    c.height = h;
+// Tile da sequência do ticker dentro da viewport, 1:1.
+// Wrap por `total` (largura natural da sequência).
+function drawTickerTiled(ctx, items, total, offset, W) {
+  const cycle = Math.max(1, total);
+  const wrapped = ((offset % cycle) + cycle) % cycle;
+  for (let baseX = -cycle; baseX < W + cycle; baseX += cycle) {
+    for (const item of items) {
+      const drawX = item.x + baseX - wrapped;
+      if (drawX + item.w < 0 || drawX > W) continue;
+      item.draw(ctx, drawX);
+    }
   }
 }
 
@@ -106,8 +113,7 @@ export default function PanelPage({
   welcomeName = "",
 } = {}) {
   void embedded;
-  const loopARef = useRef(null);
-  const loopBRef = useRef(null);
+  const canvasRef = useRef(null);
   const { test, debug } = readParams();
   const isBars = test === "bars";
   const debugModules = debug === "modules";
@@ -128,8 +134,6 @@ export default function PanelPage({
   const isWelcomeCliente =
     activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE && !!welcomeName;
   const overlayLabel = MODE_OVERLAY_LABELS[activeMode];
-  const isStaticOverlay = isBars || !!overlayLabel;
-
   useEffect(() => {
     if (isControlled) return;
     let cancelled = false;
@@ -180,32 +184,17 @@ export default function PanelPage({
 
   useEffect(() => {
     if (isPanteraVideo) return;
-    const canvasA = loopARef.current;
-    const canvasB = loopBRef.current;
-    if (!canvasA || !canvasB) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    canvasA.width = PANEL_WIDTH;
-    canvasA.height = PANEL_HEIGHT;
-    canvasB.width = PANEL_WIDTH;
-    canvasB.height = PANEL_HEIGHT;
-    const ctxA = canvasA.getContext("2d");
-    const ctxB = canvasB.getContext("2d");
-    ctxA.imageSmoothingEnabled = true;
-    ctxA.imageSmoothingQuality = "high";
-    ctxB.imageSmoothingEnabled = true;
-    ctxB.imageSmoothingQuality = "high";
-
-    const offscreen = document.createElement("canvas");
-    offscreen.width = PANEL_WIDTH;
-    offscreen.height = PANEL_HEIGHT;
-    const offCtx = offscreen.getContext("2d");
-    offCtx.imageSmoothingEnabled = true;
-    offCtx.imageSmoothingQuality = "high";
-
-    const cycleCanvas = document.createElement("canvas");
-    const cycleCtx = cycleCanvas.getContext("2d");
-    cycleCtx.imageSmoothingEnabled = true;
-    cycleCtx.imageSmoothingQuality = "high";
+    // Canvas interno fixo 2112x192. CSS força mesmo tamanho. Sem DPR, sem scale.
+    canvas.width = PANEL_WIDTH;
+    canvas.height = PANEL_HEIGHT;
+    canvas.style.width = `${PANEL_WIDTH}px`;
+    canvas.style.height = `${PANEL_HEIGHT}px`;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
     const bgPromise = background.ensureLoaded();
     goalsTicker.ensureLoaded?.();
@@ -215,24 +204,39 @@ export default function PanelPage({
 
     let raf;
     let cancelled = false;
+    let offset = 0;
+    let lastT = 0;
+    const speed = CONFIG.TICKER.SPEED_PX_PER_SECOND || 180;
 
-    function renderOffscreen() {
+    function frame(t) {
+      if (cancelled) return;
+      if (!lastT) lastT = t;
+      const dt = (t - lastT) / 1000;
+      lastT = t;
+
       const W = PANEL_WIDTH;
       const H = PANEL_HEIGHT;
-      offCtx.setTransform(1, 0, 0, 1, 0, 0);
-      offCtx.clearRect(0, 0, W, H);
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, W, H);
 
       if (isBars) {
-        barsTest.render(offCtx, { width: W, height: H, progress: 0 });
+        barsTest.render(ctx, { width: W, height: H, progress: 0 });
+        if (debugModules) drawModulesOverlay(ctx, W, H);
+        raf = requestAnimationFrame(frame);
         return;
       }
 
-      background.render(offCtx, { width: W, height: H, progress: 0 });
+      background.render(ctx, { width: W, height: H, progress: 0 });
 
       if (overlayLabel) {
-        drawModeOverlay(offCtx, W, H, overlayLabel);
+        drawModeOverlay(ctx, W, H, overlayLabel);
+        if (debugModules) drawModulesOverlay(ctx, W, H);
+        raf = requestAnimationFrame(frame);
         return;
       }
+
+      offset += speed * dt;
 
       const tickerSrc = isWelcomeColaborador
         ? colaboradorTickerLayer
@@ -240,83 +244,39 @@ export default function PanelPage({
           ? textTickerLayer
           : goalsTicker;
 
-      offCtx.font = CONFIG.TICKER.FONT;
-      const naturalCycle = Math.max(
-        1,
-        Math.round(tickerSrc.measureCycle(offCtx, H)),
-      );
+      ctx.font = CONFIG.TICKER.FONT;
+      const { items, total } = tickerSrc.getItems(ctx, H);
+      if (total > 0) offset = ((offset % total) + total) % total;
 
-      const N = naturalCycle <= W
-        ? Math.max(1, Math.floor(W / naturalCycle))
-        : 1;
-      const eff = W / N;
-
-      ensureSize(cycleCanvas, naturalCycle, H);
-      cycleCtx.setTransform(1, 0, 0, 1, 0, 0);
-      cycleCtx.clearRect(0, 0, naturalCycle, H);
-      tickerSrc.render(cycleCtx, {
-        width: naturalCycle,
-        height: H,
-        progress: 0,
-      });
-
-      offCtx.save();
-      offCtx.beginPath();
-      offCtx.rect(0, 0, W, H);
-      offCtx.clip();
-      const needScale = naturalCycle > eff;
-      for (let i = 0; i < N; i++) {
-        const x = i * eff;
-        if (needScale) {
-          offCtx.drawImage(cycleCanvas, 0, 0, naturalCycle, H, x, 0, eff, H);
-        } else {
-          offCtx.drawImage(cycleCanvas, x, 0);
-        }
-      }
-      offCtx.restore();
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, W, H);
+      ctx.clip();
+      drawTickerTiled(ctx, items, total, offset, W);
+      ctx.restore();
 
       if (debugSeam) {
-        offCtx.save();
-        offCtx.shadowColor = "transparent";
-        offCtx.shadowBlur = 0;
-        offCtx.strokeStyle = "#f0f";
-        offCtx.lineWidth = 2;
-        offCtx.fillStyle = "#f0f";
-        offCtx.font = "900 24px Montserrat, Arial, sans-serif";
-        offCtx.textBaseline = "top";
-        offCtx.textAlign = "left";
-        for (let i = 0; i < N; i++) {
-          const x = i * eff;
-          offCtx.beginPath();
-          offCtx.moveTo(Math.round(x) + 0.5, 0);
-          offCtx.lineTo(Math.round(x) + 0.5, H);
-          offCtx.stroke();
-          offCtx.fillText(`tile #${i} x=${Math.round(x)}`, x + 6, 4);
-        }
-        offCtx.restore();
+        ctx.save();
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "#f0f";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0.5, 0);
+        ctx.lineTo(0.5, H);
+        ctx.moveTo(W - 0.5, 0);
+        ctx.lineTo(W - 0.5, H);
+        ctx.stroke();
+        ctx.fillStyle = "#f0f";
+        ctx.font = "900 18px Montserrat, Arial, sans-serif";
+        ctx.textBaseline = "top";
+        ctx.fillText(`PW=${W} off=${offset.toFixed(1)} cycle=${total}`, 8, 4);
+        ctx.restore();
       }
-    }
 
-    function paintCopies() {
-      ctxA.setTransform(1, 0, 0, 1, 0, 0);
-      ctxA.clearRect(0, 0, PANEL_WIDTH, PANEL_HEIGHT);
-      ctxA.drawImage(offscreen, 0, 0);
+      if (debugModules) drawModulesOverlay(ctx, W, H);
 
-      ctxB.setTransform(1, 0, 0, 1, 0, 0);
-      ctxB.clearRect(0, 0, PANEL_WIDTH, PANEL_HEIGHT);
-      ctxB.drawImage(offscreen, 0, 0);
-
-      if (debugModules) {
-        drawModulesOverlay(ctxA, PANEL_WIDTH, PANEL_HEIGHT);
-        drawModulesOverlay(ctxB, PANEL_WIDTH, PANEL_HEIGHT);
-      }
-    }
-
-    function loop() {
-      if (cancelled) return;
-      renderOffscreen();
-      paintCopies();
-      raf = requestAnimationFrame(loop);
+      raf = requestAnimationFrame(frame);
     }
 
     (async () => {
@@ -324,7 +284,7 @@ export default function PanelPage({
       await bgPromise;
       if (isWelcomeColaborador) await colabImgPromise;
       if (cancelled) return;
-      raf = requestAnimationFrame(loop);
+      raf = requestAnimationFrame(frame);
     })();
 
     return () => {
@@ -342,18 +302,10 @@ export default function PanelPage({
   ]);
 
   const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
-  const speed = CONFIG.TICKER.SPEED_PX_PER_SECOND || 180;
-  const duration = `${(PANEL_WIDTH / speed).toFixed(3)}s`;
-
-  const screenStyle = {
-    "--panel-w": `${PANEL_WIDTH}px`,
-    "--panel-h": `${PANEL_HEIGHT}px`,
-    "--duration": duration,
-  };
 
   if (isPanteraVideo) {
     return (
-      <div className="ledScreen" style={screenStyle}>
+      <div className="ledScreen">
         <video
           src={panteraPath}
           autoPlay
@@ -366,25 +318,14 @@ export default function PanelPage({
     );
   }
 
-  if (isStaticOverlay) {
-    return (
-      <div className="ledScreen" style={screenStyle}>
-        <canvas ref={loopARef} className="ledStaticCanvas" />
-        <canvas ref={loopBRef} style={{ display: "none" }} />
-      </div>
-    );
-  }
-
   return (
-    <div className="ledScreen" style={screenStyle}>
-      <div className="ticker">
-        <section className="loop">
-          <canvas ref={loopARef} />
-        </section>
-        <section className="loop" aria-hidden="true">
-          <canvas ref={loopBRef} />
-        </section>
-      </div>
+    <div className="ledScreen">
+      <canvas
+        ref={canvasRef}
+        className="ledCanvas"
+        width={PANEL_WIDTH}
+        height={PANEL_HEIGHT}
+      />
     </div>
   );
 }

@@ -41,6 +41,43 @@ export function measureCycle(ctx) {
   return total;
 }
 
+export function getItems(ctx) {
+  if (!currentText) return { items: [], total: 1 };
+  const prevFont = ctx.font;
+  ctx.font = CONFIG.TICKER.FONT;
+  const textW = Math.ceil(ctx.measureText(currentText).width);
+  const gap = (CONFIG.TICKER.GAP | 0) || FALLBACK_GAP;
+  ctx.font = prevFont;
+  const text = currentText;
+  const color = CONFIG.TICKER.COLOR;
+  const item = {
+    type: "text",
+    x: 0,
+    w: textW,
+    draw(ctx, drawX) {
+      ctx.font = CONFIG.TICKER.FONT;
+      ctx.textBaseline = "alphabetic";
+      ctx.textAlign = "left";
+      if (CONFIG.TICKER.SHADOW) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = CONFIG.TICKER.SHADOW_BLUR;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
+      if (CONFIG.TICKER.STROKE) {
+        ctx.lineWidth = CONFIG.TICKER.STROKE_WIDTH;
+        ctx.strokeStyle = CONFIG.TICKER.STROKE_COLOR;
+        ctx.lineJoin = "round";
+        ctx.miterLimit = 2;
+        ctx.strokeText(text, drawX, CONFIG.TICKER.TEXT_Y);
+      }
+      ctx.fillStyle = color;
+      ctx.fillText(text, drawX, CONFIG.TICKER.TEXT_Y);
+    },
+  };
+  return { items: [item], total: textW + gap };
+}
+
 function drawAt(ctx, x) {
   const fillColor = CONFIG.TICKER.COLOR;
   if (CONFIG.TICKER.SHADOW) {
