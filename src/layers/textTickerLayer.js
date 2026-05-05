@@ -41,7 +41,7 @@ export function measureCycle(ctx) {
   return total;
 }
 
-export function getItems(ctx) {
+export function getItems(ctx, H) {
   if (!currentText) return { items: [], total: 1 };
   const prevFont = ctx.font;
   ctx.font = CONFIG.TICKER.FONT;
@@ -50,13 +50,15 @@ export function getItems(ctx) {
   ctx.font = prevFont;
   const text = currentText;
   const color = CONFIG.TICKER.COLOR;
+  const y = (H || CONFIG.HEIGHT) / 2;
   const item = {
     type: "text",
     x: 0,
     w: textW,
     draw(ctx, drawX) {
+      ctx.globalAlpha = 1;
       ctx.font = CONFIG.TICKER.FONT;
-      ctx.textBaseline = "alphabetic";
+      ctx.textBaseline = "middle";
       ctx.textAlign = "left";
       if (CONFIG.TICKER.SHADOW) {
         ctx.shadowColor = color;
@@ -69,10 +71,10 @@ export function getItems(ctx) {
         ctx.strokeStyle = CONFIG.TICKER.STROKE_COLOR;
         ctx.lineJoin = "round";
         ctx.miterLimit = 2;
-        ctx.strokeText(text, drawX, CONFIG.TICKER.TEXT_Y);
+        ctx.strokeText(text, drawX, y);
       }
       ctx.fillStyle = color;
-      ctx.fillText(text, drawX, CONFIG.TICKER.TEXT_Y);
+      ctx.fillText(text, drawX, y);
     },
   };
   return { items: [item], total: textW + gap };

@@ -213,14 +213,15 @@ export function measureCycle(ctx, opts = {}) {
   return cycle || 1;
 }
 
-function makeTextItem(text, color, x, w) {
+function makeTextItem(text, color, x, w, y) {
   return {
     type: "text",
     x,
     w,
     draw(ctx, drawX) {
+      ctx.globalAlpha = 1;
       ctx.font = CONFIG.TICKER.FONT;
-      ctx.textBaseline = "alphabetic";
+      ctx.textBaseline = "middle";
       ctx.textAlign = "left";
       if (CONFIG.TICKER.SHADOW) {
         ctx.shadowColor = color;
@@ -233,10 +234,10 @@ function makeTextItem(text, color, x, w) {
         ctx.strokeStyle = CONFIG.TICKER.STROKE_COLOR;
         ctx.lineJoin = "round";
         ctx.miterLimit = 2;
-        ctx.strokeText(text, drawX, CONFIG.TICKER.TEXT_Y);
+        ctx.strokeText(text, drawX, y);
       }
       ctx.fillStyle = color;
-      ctx.fillText(text, drawX, CONFIG.TICKER.TEXT_Y);
+      ctx.fillText(text, drawX, y);
     },
   };
 }
@@ -283,16 +284,18 @@ function makeIconItem(key, x, w) {
 }
 
 /** Lista plana de itens com posição absoluta. Total inclui gaps. */
-export function getItems(ctx, _H, opts = {}) {
+export function getItems(ctx, H, opts = {}) {
   const goals = opts.goals ?? getGoals();
   const prevFont = ctx.font;
   ctx.font = CONFIG.TICKER.FONT;
   const blocks = buildBlocks(ctx, goals);
   const items = [];
+  const bandH = H || CONFIG.HEIGHT;
+  const y = bandH / 2;
   let x = 0;
   for (const b of blocks) {
     if (b.type === "text") {
-      items.push(makeTextItem(b.text, b.color || CONFIG.TICKER.COLOR, x, b.width));
+      items.push(makeTextItem(b.text, b.color || CONFIG.TICKER.COLOR, x, b.width, y));
     } else if (b.type === "icon") {
       items.push(makeIconItem(b.key, x, b.width));
     }

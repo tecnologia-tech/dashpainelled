@@ -218,6 +218,7 @@ export default function PanelPage({
       const H = PANEL_HEIGHT;
 
       ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
       ctx.clearRect(0, 0, W, H);
 
       if (isBars) {
@@ -245,7 +246,15 @@ export default function PanelPage({
           : goalsTicker;
 
       ctx.font = CONFIG.TICKER.FONT;
-      const { items, total } = tickerSrc.getItems(ctx, H);
+      let items = [];
+      let total = 1;
+      try {
+        const r = tickerSrc.getItems(ctx, H);
+        items = r?.items ?? [];
+        total = r?.total ?? 1;
+      } catch (err) {
+        console.error("ticker getItems failed:", err);
+      }
       if (total > 0) offset = ((offset % total) + total) % total;
 
       ctx.save();

@@ -59,6 +59,7 @@ export function getItems(ctx, bandH) {
   const { w: imgW, h: imgH } = scaledImgSize(H);
   const text = currentText;
   const color = CONFIG.TICKER.COLOR;
+  const textY = H / 2;
 
   const items = [];
   items.push({
@@ -66,8 +67,9 @@ export function getItems(ctx, bandH) {
     x: 0,
     w: textW,
     draw(ctx, drawX) {
+      ctx.globalAlpha = 1;
       ctx.font = CONFIG.TICKER.FONT;
-      ctx.textBaseline = "alphabetic";
+      ctx.textBaseline = "middle";
       ctx.textAlign = "left";
       if (CONFIG.TICKER.SHADOW) {
         ctx.shadowColor = color;
@@ -80,10 +82,10 @@ export function getItems(ctx, bandH) {
         ctx.strokeStyle = CONFIG.TICKER.STROKE_COLOR;
         ctx.lineJoin = "round";
         ctx.miterLimit = 2;
-        ctx.strokeText(text, drawX, CONFIG.TICKER.TEXT_Y);
+        ctx.strokeText(text, drawX, textY);
       }
       ctx.fillStyle = color;
-      ctx.fillText(text, drawX, CONFIG.TICKER.TEXT_Y);
+      ctx.fillText(text, drawX, textY);
     },
   });
 
