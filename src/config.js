@@ -97,6 +97,12 @@ export const CONFIG = {
       OFFSET_Y: 0,
       FLIP_X: true,
     },
+    LOGO_12P: {
+      PATH: "/assets/12P.png",
+      SCALE: 1.6,
+      OFFSET_X: 0,
+      OFFSET_Y: 0,
+    },
   },
 
   TICKER: {
@@ -148,6 +154,8 @@ export const CONFIG = {
     LABEL_VALUE_GAP: 18, // "Alcançado:" ↔ valor / "Meta:" ↔ valor
     ALCANCADO_TO_META: 52, // valor alcançado ↔ "Meta:"
     BULLET_PAD: 80, // gap igual antes e depois da bolinha
+    LOGO_INNER_PAD: 360, // gap interno bola↔logo 12P (cada lado)
+    LOGO_OUTER_PAD: 320, // gap externo texto↔bola e bola↔próximo bloco no separador 12P
   },
 
   DISPLAY_ROTATION: {
@@ -176,6 +184,7 @@ export const CONFIG = {
     BEM_VINDO_COLABORADOR: "bemVindoColaborador",
     NUT_DAY: "nutDay",
     PANTERA_VIDEO: "panteraVideo",
+    TEXTO_LIVRE: "textoLivre",
   },
 
   MODE_LABELS: {
@@ -188,6 +197,7 @@ export const CONFIG = {
     bemVindoColaborador: "Bem vindo Colaborador",
     nutDay: "Nut Day",
     panteraVideo: "Pantera",
+    textoLivre: "Texto",
   },
 
   MODE_TO_VIDEO_KEY: {
@@ -200,6 +210,7 @@ export const CONFIG = {
     bemVindoColaborador: "NORMAL",
     nutDay: "NUT_DAY",
     panteraVideo: "PANTERA",
+    textoLivre: "NORMAL",
   },
 
   MODE_PLACEHOLDERS: {
@@ -210,6 +221,7 @@ export const CONFIG = {
     bemVindoCliente: "BEM-VINDO CLIENTE",
     bemVindoColaborador: "BEM VINDO COLABORADOR",
     nutDay: "NUT DAY",
+    textoLivre: "TEXTO",
   },
 
   ACTIVE_MODE_DEFAULT: "normal",

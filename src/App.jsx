@@ -46,6 +46,10 @@ export default function App() {
   const [welcomeDraft, setWelcomeDraft] = useState("");
   const suppressWelcomeModalRef = useRef(false);
 
+  const [customText, setCustomText] = useState("");
+  const [textModalOpen, setTextModalOpen] = useState(false);
+  const [textDraft, setTextDraft] = useState("");
+
   const activateMode = useCallback((mode) => {
     if (!isValidMode(mode)) return null;
 
@@ -98,6 +102,7 @@ export default function App() {
   }, [activateMode]);
 
   const isWelcomeCliente = activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
+  const isTextoLivre = activeMode === CONFIG.MODES.TEXTO_LIVRE;
 
   useEffect(() => {
     if (isWelcomeCliente) {
@@ -112,12 +117,29 @@ export default function App() {
     }
   }, [isWelcomeCliente]);
 
+  useEffect(() => {
+    if (isTextoLivre) {
+      setTextDraft(customText);
+      setTextModalOpen(true);
+    } else {
+      setTextModalOpen(false);
+    }
+  }, [isTextoLivre]);
+
   function submitWelcomeName(e) {
     e?.preventDefault?.();
     const trimmed = welcomeDraft.trim();
     if (!trimmed) return;
     setWelcomeName(trimmed);
     setWelcomeModalOpen(false);
+  }
+
+  function submitCustomText(e) {
+    e?.preventDefault?.();
+    const trimmed = textDraft.trim();
+    if (!trimmed) return;
+    setCustomText(trimmed);
+    setTextModalOpen(false);
   }
 
   return (
@@ -127,6 +149,7 @@ export default function App() {
           embedded
           activeMode={activeMode}
           welcomeName={welcomeName}
+          customText={customText}
         />
       </main>
 
@@ -157,6 +180,31 @@ export default function App() {
             />
             <div className="modal-actions">
               <button type="submit" className="control-btn primary" disabled={!welcomeDraft.trim()}>
+                Salvar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {textModalOpen && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <form className="modal-card" onSubmit={submitCustomText}>
+            <h2 className="modal-title">Texto Livre</h2>
+            <label className="modal-label" htmlFor="custom-text-input">
+              Texto a exibir no painel
+            </label>
+            <textarea
+              id="custom-text-input"
+              className="modal-input"
+              autoFocus
+              rows={3}
+              value={textDraft}
+              onChange={(e) => setTextDraft(e.target.value)}
+              placeholder="Digite o texto"
+            />
+            <div className="modal-actions">
+              <button type="submit" className="control-btn primary" disabled={!textDraft.trim()}>
                 Salvar
               </button>
             </div>

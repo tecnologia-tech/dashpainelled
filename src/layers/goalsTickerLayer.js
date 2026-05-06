@@ -22,6 +22,9 @@ const METAS = [
   { iconKey: "ARIANE",  label: "Novos Negócios", field: "metaLtda",        colorKey: "NOVOS_NEGOCIOS" },
 ];
 
+// Ícones extra carregados além dos das metas (separadores, logos, etc.).
+const EXTRA_ICON_KEYS = ["LOGO_12P"];
+
 const FALLBACK_PALETTE = { dark: "#888", mid: "#BBB", light: "#DDD", strong: "#FFF" };
 function sectorPalette(colorKey) {
   const p = CONFIG.SECTOR_COLORS?.[colorKey];
@@ -46,22 +49,23 @@ function tryLoad(src) {
 
 export function ensureLoaded() {
   if (iconPromise) return iconPromise;
-  for (const m of METAS) icons[m.iconKey] = { img: null, status: "idle" };
+  const allKeys = [...METAS.map((m) => m.iconKey), ...EXTRA_ICON_KEYS];
+  for (const key of allKeys) icons[key] = { img: null, status: "idle" };
 
-  iconPromise = Promise.all(METAS.map(async (m) => {
-    const cfg = CONFIG.ICONS?.[m.iconKey];
+  iconPromise = Promise.all(allKeys.map(async (key) => {
+    const cfg = CONFIG.ICONS?.[key];
     if (!cfg?.PATH) {
-      icons[m.iconKey] = { img: null, status: "skipped" };
+      icons[key] = { img: null, status: "skipped" };
       return;
     }
-    icons[m.iconKey] = { img: null, status: "loading" };
+    icons[key] = { img: null, status: "loading" };
     const img = await tryLoad(cfg.PATH);
     if (img) {
-      icons[m.iconKey] = { img, status: "ready" };
-      console.log(`Ícone ${m.iconKey} carregado: ${cfg.PATH} (${img.naturalWidth}x${img.naturalHeight})`);
+      icons[key] = { img, status: "ready" };
+      console.log(`Ícone ${key} carregado: ${cfg.PATH} (${img.naturalWidth}x${img.naturalHeight})`);
     } else {
-      icons[m.iconKey] = { img: null, status: "error" };
-      console.warn(`Ícone ${m.iconKey} não carregou — bloco será pulado. Caminho: ${cfg.PATH}`);
+      icons[key] = { img: null, status: "error" };
+      console.warn(`Ícone ${key} não carregou — bloco será pulado. Caminho: ${cfg.PATH}`);
     }
   }));
   return iconPromise;
@@ -99,7 +103,10 @@ function buildBlocks(ctx, goals) {
     width: slot.WIDTH + (slot.MARGIN_X | 0),
   });
 
-  const addGoalBlock = (blocks, label, iconKey, atingido, meta, palette) => {
+  const addGoalBlock = (blocks, label, iconKey, atingido, meta, palette, opts = {}) => {
+    const leadBulletPad = opts.leadBulletPad ?? sp.BULLET_PAD;
+    const tailBulletPad = opts.tailBulletPad ?? sp.BULLET_PAD;
+    const omitTailBullet = !!opts.omitTailBullet;
     blocks.push(icon(iconKey));
     blocks.push(gap(sp.ICON_TO_LABEL));
     blocks.push(text(label, palette.mid));
@@ -111,14 +118,25 @@ function buildBlocks(ctx, goals) {
     blocks.push(text("Meta:", palette.light));
     blocks.push(gap(sp.LABEL_VALUE_GAP));
     blocks.push(text(meta, palette.mid));
-    blocks.push(gap(sp.BULLET_PAD));
-    blocks.push(text("•", "#FFFFFF"));
-    blocks.push(gap(sp.BULLET_PAD));
+    if (omitTailBullet) {
+      blocks.push(gap(leadBulletPad + tailBulletPad));
+    } else {
+      blocks.push(gap(leadBulletPad));
+      blocks.push(text("•", "#FFFFFF"));
+      blocks.push(gap(tailBulletPad));
+    }
   };
 
   const blocks = [];
   for (const m of METAS) {
     const entry = goals[m.field] || { atingido: 0, meta: 0 };
+    const isLogoSeparator =
+      m.colorKey === "GLOBAL_12P" && iconReady("LOGO_12P");
+    const innerPad = sp.LOGO_INNER_PAD ?? sp.BULLET_PAD;
+    const outerPad = sp.LOGO_OUTER_PAD ?? sp.BULLET_PAD;
+
+    // Quando seguido pelo separador 12P: bullet de fechamento omitido,
+    // gap combinado (outer+inner) preserva respiro entre texto verde e logo.
     addGoalBlock(
       blocks,
       m.label,
@@ -126,7 +144,21 @@ function buildBlocks(ctx, goals) {
       formatAtingido(entry.atingido),
       formatMeta(entry.meta),
       sectorPalette(m.colorKey),
+      isLogoSeparator
+        ? { leadBulletPad: outerPad, tailBulletPad: innerPad, omitTailBullet: true }
+        : {},
     );
+
+    // Separador 12P entre verde e laranja, sem bullets ao redor:
+    // ... verde texto → (outer+inner) → 12P → (inner+outer) → laranja.
+    if (isLogoSeparator) {
+      const logoCfg = CONFIG.ICONS.LOGO_12P;
+      const logoScale = logoCfg?.SCALE ?? 1;
+      const logoWidth = Math.ceil(slot.WIDTH * logoScale + (slot.MARGIN_X | 0));
+
+      blocks.push({ type: "icon", key: "LOGO_12P", width: logoWidth });
+      blocks.push(gap(innerPad + outerPad));
+    }
   }
   return blocks;
 }

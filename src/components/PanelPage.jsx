@@ -4,6 +4,7 @@ import * as background from "../layers/backgroundLayer.js";
 import * as barsTest from "../layers/barsTestLayer.js";
 import * as colaboradorTickerLayer from "../layers/colaboradorTickerLayer.js";
 import * as goalsTicker from "../layers/goalsTickerLayer.js";
+import * as textTickerLayer from "../layers/textTickerLayer.js";
 import * as welcomeClienteLayer from "../layers/welcomeClienteLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 import { getSettings, saveSettings } from "../services/settingsService.js";
@@ -107,6 +108,7 @@ export default function PanelPage({
   embedded = false,
   activeMode: controlledMode,
   welcomeName = "",
+  customText = "",
 } = {}) {
   void embedded;
   const canvasRef = useRef(null);
@@ -129,6 +131,8 @@ export default function PanelPage({
     activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
   const isWelcomeCliente =
     activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
+  const isTextoLivre =
+    activeMode === CONFIG.MODES.TEXTO_LIVRE && !!customText;
   const overlayLabel = MODE_OVERLAY_LABELS[activeMode];
   useEffect(() => {
     if (isControlled) return;
@@ -177,6 +181,12 @@ export default function PanelPage({
       welcomeClienteLayer.setName(welcomeName || "");
     }
   }, [isWelcomeCliente, welcomeName]);
+
+  useEffect(() => {
+    if (isTextoLivre) {
+      textTickerLayer.setText(customText);
+    }
+  }, [isTextoLivre, customText]);
 
   useEffect(() => {
     if (isPanteraVideo) return;
@@ -239,7 +249,9 @@ export default function PanelPage({
         ? colaboradorTickerLayer
         : isWelcomeCliente
           ? welcomeClienteLayer
-          : goalsTicker;
+          : isTextoLivre
+            ? textTickerLayer
+            : goalsTicker;
 
       ctx.font = CONFIG.TICKER.FONT;
       let items = [];

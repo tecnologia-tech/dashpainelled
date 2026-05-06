@@ -20,6 +20,7 @@ const allowedModes = [
   "bemVindoColaborador",
   "nutDay",
   "panteraVideo",
+  "textoLivre",
 ];
 
 function readSettings() {

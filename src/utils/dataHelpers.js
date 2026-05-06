@@ -64,21 +64,22 @@ export function formatAtingido(value) {
   return sign + Math.round(abs).toString();
 }
 
-/** 3000000 -> "3M" | 1500000 -> "1,5M" | 1020000 -> "1,02M". (zeros finais removidos) */
+/** 3000000 -> "3M" | 1500000 -> "1,50M" | 1020000 -> "1,02M".
+ *  Inteiro exato: sem decimais. Caso contrário: sempre 2 casas. */
+function formatScaled(abs, divisor, suffix, sign) {
+  const v = abs / divisor;
+  const str = Number.isInteger(v) ? v.toFixed(0) : v.toFixed(2);
+  return sign + str.replace(".", ",") + suffix;
+}
+
 export function formatMeta(value) {
   const v = Number(value) || 0;
   const abs = Math.abs(v);
   const sign = v < 0 ? "-" : "";
   if (abs === 0) return "0";
-  if (abs >= 1e9) {
-    return sign + String(parseFloat((abs / 1e9).toFixed(3))).replace(".", ",") + "B";
-  }
-  if (abs >= 1e6) {
-    return sign + String(parseFloat((abs / 1e6).toFixed(3))).replace(".", ",") + "M";
-  }
-  if (abs >= 1e3) {
-    return sign + String(parseFloat((abs / 1e3).toFixed(3))).replace(".", ",") + "K";
-  }
+  if (abs >= 1e9) return formatScaled(abs, 1e9, "B", sign);
+  if (abs >= 1e6) return formatScaled(abs, 1e6, "M", sign);
+  if (abs >= 1e3) return formatScaled(abs, 1e3, "K", sign);
   return sign + Math.round(abs).toString();
 }
 
