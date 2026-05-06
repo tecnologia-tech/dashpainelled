@@ -3,6 +3,7 @@ import { CONFIG } from "./config.js";
 import ControlPanel from "./components/ControlPanel.jsx";
 import PanelPage from "./components/PanelPage.jsx";
 import { getSettings, saveSettings } from "./services/settingsService.js";
+import { getNextClienteNaCasa } from "./services/clienteNaCasaService.js";
 
 function isValidMode(m) {
   return typeof m === "string" && Object.values(CONFIG.MODES).includes(m);
@@ -43,9 +44,21 @@ export default function App() {
   const [welcomeName, setWelcomeName] = useState("");
   const [welcomeModalOpen, setWelcomeModalOpen] = useState(false);
   const [welcomeDraft, setWelcomeDraft] = useState("");
+  const suppressWelcomeModalRef = useRef(false);
 
   const activateMode = useCallback((mode) => {
     if (!isValidMode(mode)) return null;
+
+    let autoCliente = null;
+    if (mode === CONFIG.MODES.BEM_VINDO_CLIENTE) {
+      autoCliente = getNextClienteNaCasa();
+      if (autoCliente) {
+        suppressWelcomeModalRef.current = true;
+        setWelcomeName(autoCliente.nome);
+        setWelcomeModalOpen(false);
+      }
+    }
+
     if (activeModeRef.current === mode) return mode;
     activeModeRef.current = mode;
     setActiveMode(mode);
@@ -88,6 +101,10 @@ export default function App() {
 
   useEffect(() => {
     if (isWelcomeCliente) {
+      if (suppressWelcomeModalRef.current) {
+        suppressWelcomeModalRef.current = false;
+        return;
+      }
       setWelcomeDraft(welcomeName);
       setWelcomeModalOpen(true);
     } else {

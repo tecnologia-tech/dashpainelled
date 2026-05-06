@@ -420,6 +420,134 @@ html, body, #root {
   transform: none !important;
 }
 
+/* Página /clientenacasa */
+.cnc-page {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  color: var(--fg);
+  overflow: auto;
+  padding: 32px 24px;
+}
+
+.cnc-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cnc-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  border-bottom: 2px solid #ffd200;
+  padding-bottom: 12px;
+}
+
+.cnc-title {
+  margin: 0;
+  color: #ffd200;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cnc-subtitle {
+  color: #aaa;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cnc-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cnc-input {
+  flex: 1 1 280px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #ffd200;
+  background: #0a0a0a;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 0 12px;
+  outline: none;
+}
+.cnc-input:focus {
+  box-shadow: 0 0 0 2px rgba(255, 210, 0, 0.4);
+}
+
+.cnc-table-wrap {
+  border: 1px solid rgba(246, 196, 0, 0.4);
+  border-radius: 10px;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.cnc-empty {
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  color: #aaa;
+  font-size: 14px;
+}
+
+.cnc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.cnc-table thead th {
+  background: #111;
+  color: #ffd200;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(246, 196, 0, 0.4);
+}
+
+.cnc-table tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.cnc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cnc-table tbody tr:hover {
+  background: rgba(255, 210, 0, 0.04);
+}
+
+.cnc-remaining {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-weight: 800;
+  color: #ffd84d;
+}
+
+.cnc-row-expired td {
+  color: #888;
+}
+.cnc-row-expired .cnc-remaining {
+  color: #ff6b6b;
+}
+
 /* HUD de debug — dentro do preview-area. */
 .debug-hud {
   position: absolute;
