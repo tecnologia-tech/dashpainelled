@@ -128,7 +128,7 @@ export default function PanelPage({
   const isWelcomeColaborador =
     activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
   const isWelcomeCliente =
-    activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE && !!welcomeName;
+    activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
   const overlayLabel = MODE_OVERLAY_LABELS[activeMode];
   useEffect(() => {
     if (isControlled) return;
@@ -174,7 +174,7 @@ export default function PanelPage({
 
   useEffect(() => {
     if (isWelcomeCliente) {
-      welcomeClienteLayer.setName(welcomeName);
+      welcomeClienteLayer.setName(welcomeName || "");
     }
   }, [isWelcomeCliente, welcomeName]);
 

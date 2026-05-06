@@ -1,8 +1,5 @@
 import { CONFIG } from "../config.js";
 
-const MESSAGE = "BEM-VINDO À TODA 12P";
-const SEPARATOR = "•";
-const NAME_COLOR = "#FFD400";
 const TEXT_COLOR = "#FFFFFF";
 
 let currentName = "";
@@ -25,32 +22,26 @@ export function getIconStatus() {
   return {};
 }
 
-function segGap() {
-  return (CONFIG.TICKER_SPACING?.BULLET_PAD | 0) || 80;
+export function buildWelcomeMessage(name) {
+  const cliente = String(name ?? "").trim().toUpperCase();
+  if (!cliente) {
+    return "BEM-VINDO AO 12P, SUA IMPORTAÇÃO COMEÇOU!!!";
+  }
+  return `${cliente}, BEM-VINDO AO 12P, SUA IMPORTAÇÃO COMEÇOU!!!`;
 }
 
 function endGap() {
-  return (CONFIG.TICKER.GAP | 0) || segGap() || 600;
+  return (CONFIG.TICKER.GAP | 0) || (CONFIG.TICKER_SPACING?.BULLET_PAD | 0) || 600;
 }
 
-function buildSegments() {
-  const safeName = currentName;
-  if (!safeName) return [];
-  return [
-    { text: safeName, color: NAME_COLOR },
-    { text: SEPARATOR, color: TEXT_COLOR },
-    { text: MESSAGE, color: TEXT_COLOR },
-  ];
-}
-
-function makeDrawer(text, color, y) {
+function makeDrawer(text, y) {
   return function draw(ctx, drawX) {
     ctx.globalAlpha = 1;
     ctx.font = CONFIG.TICKER.FONT;
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
     if (CONFIG.TICKER.SHADOW) {
-      ctx.shadowColor = color;
+      ctx.shadowColor = TEXT_COLOR;
       ctx.shadowBlur = CONFIG.TICKER.SHADOW_BLUR;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
@@ -62,52 +53,35 @@ function makeDrawer(text, color, y) {
       ctx.miterLimit = 2;
       ctx.strokeText(text, drawX, y);
     }
-    ctx.fillStyle = color;
+    ctx.fillStyle = TEXT_COLOR;
     ctx.fillText(text, drawX, y);
   };
 }
 
 export function getItems(ctx, H) {
-  const segments = buildSegments();
-  if (segments.length === 0) return { items: [], total: 1 };
-
+  const text = buildWelcomeMessage(currentName);
   const prevFont = ctx.font;
   ctx.font = CONFIG.TICKER.FONT;
-  const gap = segGap();
   const tail = endGap();
   const y = (H || CONFIG.HEIGHT) / 2;
-
-  const items = [];
-  let cursor = 0;
-  for (let i = 0; i < segments.length; i++) {
-    const { text, color } = segments[i];
-    const w = Math.ceil(ctx.measureText(text).width);
-    items.push({
-      type: "text",
-      x: cursor,
-      w,
-      draw: makeDrawer(text, color, y),
-    });
-    cursor += w;
-    if (i < segments.length - 1) cursor += gap;
-  }
-  const total = cursor + tail;
+  const w = Math.ceil(ctx.measureText(text).width);
   ctx.font = prevFont;
-  return { items, total };
+  const items = [
+    {
+      type: "text",
+      x: 0,
+      w,
+      draw: makeDrawer(text, y),
+    },
+  ];
+  return { items, total: w + tail };
 }
 
 export function measureCycle(ctx) {
-  if (!currentName) return 1;
+  const text = buildWelcomeMessage(currentName);
   const prevFont = ctx.font;
   ctx.font = CONFIG.TICKER.FONT;
-  const segments = buildSegments();
-  const gap = segGap();
-  const tail = endGap();
-  let cursor = 0;
-  for (let i = 0; i < segments.length; i++) {
-    cursor += Math.ceil(ctx.measureText(segments[i].text).width);
-    if (i < segments.length - 1) cursor += gap;
-  }
+  const w = Math.ceil(ctx.measureText(text).width);
   ctx.font = prevFont;
-  return cursor + tail;
+  return w + endGap();
 }
