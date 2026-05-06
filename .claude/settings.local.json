@@ -12,7 +12,9 @@
       "Bash(npm run *)",
       "Bash(curl *)",
       "Bash(taskkill /F /FI \"IMAGENAME eq node.exe\")",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "Bash(not exist *)",
+      "PowerShell(New-Item *)"
     ]
   }
 }

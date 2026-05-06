@@ -37,9 +37,13 @@ export const CONFIG = {
   },
 
   API: {
-    WONS_URL: "https://dados-4ew4.onrender.com/api/wons",
+    // Em produção (Vercel) WONS é proxiado por /api/wons (serverless function)
+    // para evitar CORS: o servidor onrender só libera localhost. Em dev, hit direto.
+    WONS_URL: import.meta.env.PROD
+      ? "/api/wons"
+      : "https://dados-4ew4.onrender.com/api/wons",
     METAS_URL: "/api/metas",
-    TIMEOUT_MS: 12000,
+    TIMEOUT_MS: 30000,
     REFRESH_MS: 30000,
   },
 
