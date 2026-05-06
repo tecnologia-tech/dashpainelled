@@ -4,7 +4,7 @@ import * as background from "../layers/backgroundLayer.js";
 import * as barsTest from "../layers/barsTestLayer.js";
 import * as colaboradorTickerLayer from "../layers/colaboradorTickerLayer.js";
 import * as goalsTicker from "../layers/goalsTickerLayer.js";
-import * as textTickerLayer from "../layers/textTickerLayer.js";
+import * as welcomeClienteLayer from "../layers/welcomeClienteLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 import { getSettings, saveSettings } from "../services/settingsService.js";
 
@@ -13,10 +13,6 @@ const PANEL_HEIGHT = 192;
 const MODULE_COUNT = 16;
 
 const COLAB_MESSAGE = "SEJAM BEM VINDOS A TOCA DA PANTERA";
-
-function buildWelcomeMessage(name) {
-  return `BEM-VINDO À TOCA DA PANTERA ${name}. SUA IMPORTAÇÃO COMEÇA AQUI.`;
-}
 
 const MODE_OVERLAY_LABELS = {
   sino: "Modo Sino",
@@ -178,7 +174,7 @@ export default function PanelPage({
 
   useEffect(() => {
     if (isWelcomeCliente) {
-      textTickerLayer.setText(buildWelcomeMessage(welcomeName));
+      welcomeClienteLayer.setName(welcomeName);
     }
   }, [isWelcomeCliente, welcomeName]);
 
@@ -242,7 +238,7 @@ export default function PanelPage({
       const tickerSrc = isWelcomeColaborador
         ? colaboradorTickerLayer
         : isWelcomeCliente
-          ? textTickerLayer
+          ? welcomeClienteLayer
           : goalsTicker;
 
       ctx.font = CONFIG.TICKER.FONT;

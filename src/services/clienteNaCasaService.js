@@ -1,6 +1,6 @@
 export const CLIENTE_NA_CASA_STORAGE_KEY = "cliente-na-casa:list";
 export const CLIENTE_NA_CASA_POINTER_KEY = "cliente-na-casa:pointer";
-export const CLIENTE_NA_CASA_EXPIRATION_MS = 2 * 60 * 60 * 1000;
+export const CLIENTE_NA_CASA_EXPIRATION_MS = 24 * 60 * 60 * 1000;
 
 function isValidCliente(c) {
   return (

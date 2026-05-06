@@ -22,11 +22,12 @@ function pruneExpired(clientes) {
   return clientes.filter((c) => new Date(c.expiresAt).getTime() > now);
 }
 
-function createCliente(nome) {
+function createClienteNaCasa(nome) {
+  const cleanName = nome.trim().toUpperCase();
   const now = new Date();
   return {
     id: genId(),
-    nome,
+    nome: cleanName,
     createdAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + CLIENTE_NA_CASA_EXPIRATION_MS).toISOString(),
   };
@@ -97,7 +98,7 @@ export default function ClienteNaCasaPage() {
       e.preventDefault();
       const trimmed = nome.trim();
       if (!trimmed) return;
-      setClientes((prev) => sortByExpires([...prev, createCliente(trimmed)]));
+      setClientes((prev) => sortByExpires([...prev, createClienteNaCasa(trimmed)]));
       setNome("");
     },
     [nome]
@@ -118,7 +119,7 @@ export default function ClienteNaCasaPage() {
       <div className="cnc-container">
         <header className="cnc-header">
           <h1 className="cnc-title">Cliente na Casa</h1>
-          <span className="cnc-subtitle">Expira em 2 horas</span>
+          <span className="cnc-subtitle">Expira em 24 horas</span>
         </header>
 
         <form className="cnc-form" onSubmit={handleSubmit}>
