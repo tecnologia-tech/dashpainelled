@@ -142,7 +142,7 @@ function buildBlocks(ctx, goals) {
       m.label,
       m.iconKey,
       formatAtingido(entry.atingido),
-      formatMeta(entry.meta),
+      entry.metaText ?? formatMeta(entry.meta),
       sectorPalette(m.colorKey),
       isLogoSeparator
         ? { leadBulletPad: outerPad, tailBulletPad: innerPad, omitTailBullet: true }
@@ -231,7 +231,7 @@ export function buildText(goals = getGoals()) {
   return METAS.map((m) => {
     const ic = iconReady(m.iconKey) ? `[${m.iconKey.toLowerCase()}] ` : "";
     const entry = goals[m.field] || { atingido: 0, meta: 0 };
-    return `${ic}${m.label} Alcançado ${formatAtingido(entry.atingido)} Meta ${formatMeta(entry.meta)} •`;
+    return `${ic}${m.label} Alcançado ${formatAtingido(entry.atingido)} Meta ${entry.metaText ?? formatMeta(entry.meta)} •`;
   }).join(" ");
 }
 

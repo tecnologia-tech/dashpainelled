@@ -126,19 +126,19 @@ function computeAtingidos(rawWons) {
   };
 }
 
-function pickMetas(payload) {
-  if (!payload || typeof payload !== "object") return null;
-  const m12 = toNumber(payload.meta12p);
-  const mC  = toNumber(payload.metaConsultoria);
-  const mL  = toNumber(payload.metaLtda);
-  if (!(m12 || mC || mL)) return null;
-  return { meta12p: m12, metaConsultoria: mC, metaLtda: mL };
+// Formata número para "1,50M" / "3,00M" / "1,61M". Sempre 2 casas.
+function formatMeta(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "0M";
+  const m = n / 1_000_000;
+  return `${m.toFixed(2).replace(".", ",")}M`;
 }
 
 async function refresh() {
   wonsStatus  = "loading";
   metasStatus = "loading";
 
+  // /api/wons → array de vendas → calcula "Alcançado".
   let atingidos = null;
   try {
     const rawWons = await fetchJson(CONFIG.API.WONS_URL);
@@ -149,23 +149,46 @@ async function refresh() {
     console.warn(`WONS fetch falhou (${err.message}) — mantendo último valor.`);
   }
 
+  // /api/metas → metas por setor. Aceita { metas: {...} } ou shape plano.
   let metas = null;
+  let metasText = null;
   try {
     const rawMetas = await fetchJson(CONFIG.API.METAS_URL);
-    metas = pickMetas(rawMetas);
-    if (!metas) throw new Error("payload metas inválido");
-    lastMetas = metas;
-    metasStatus = "ok";
+    if (CONFIG.SHOW_DEBUG) console.log("RAW METAS:", rawMetas);
+    const src = (rawMetas?.metas && typeof rawMetas.metas === "object")
+      ? rawMetas.metas
+      : (rawMetas ?? {});
+    const metaLtda        = Number(src.LTDA        ?? src.metaLtda        ?? 0);
+    const metaConsultoria = Number(src.Consultoria ?? src.metaConsultoria ?? 0);
+    const meta12p         = Number(src["12P"]      ?? src.meta12p         ?? 0);
+    if (metaLtda || metaConsultoria || meta12p) {
+      metas = { meta12p, metaConsultoria, metaLtda };
+      lastMetas = metas;
+      metasStatus = "ok";
+      metasText = {
+        metaNovosNegocios: formatMeta(metaLtda),
+        metaConsultoria:   formatMeta(metaConsultoria),
+        metaGlobal12P:     formatMeta(meta12p),
+      };
+    } else {
+      throw new Error("payload metas inválido");
+    }
   } catch (err) {
     metasStatus = "error";
-    console.warn(`METAS fetch falhou (${err.message}) — usando último valor/fallback.`);
+    console.warn(`METAS fetch falhou (${err.message}) — usando último valor.`);
   }
 
   const useMetas = metas || lastMetas;
+  const fallbackText = {
+    metaGlobal12P:     formatMeta(useMetas.meta12p),
+    metaConsultoria:   formatMeta(useMetas.metaConsultoria),
+    metaNovosNegocios: formatMeta(useMetas.metaLtda),
+  };
+  const useText = metasText || fallbackText;
   const next = {
-    meta12p:         { ...current.meta12p,         meta: useMetas.meta12p },
-    metaConsultoria: { ...current.metaConsultoria, meta: useMetas.metaConsultoria },
-    metaLtda:        { ...current.metaLtda,        meta: useMetas.metaLtda },
+    meta12p:         { ...current.meta12p,         meta: useMetas.meta12p,         metaText: useText.metaGlobal12P },
+    metaConsultoria: { ...current.metaConsultoria, meta: useMetas.metaConsultoria, metaText: useText.metaConsultoria },
+    metaLtda:        { ...current.metaLtda,        meta: useMetas.metaLtda,        metaText: useText.metaNovosNegocios },
   };
   if (atingidos) {
     next.meta12p.atingido         = atingidos.atingido12p;

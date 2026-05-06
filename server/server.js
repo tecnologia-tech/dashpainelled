@@ -126,27 +126,20 @@ app.get("/api/goals", async (_req, res) => {
   }
 });
 
-// =====================================================================
-// Plugar fonte real das metas aqui (Postgres/MySQL/HTTP/etc.).
-// Formato: { meta12p, metaConsultoria, metaLtda } em centavos? não — em
-// reais (number). O front converte para formatMoneyShort.
-// =====================================================================
-async function getMetasFromDatabase() {
-  return {
-    meta12p:         3000000,
-    metaConsultoria: 1500000,
-    metaLtda:        1500000,
-  };
-}
+// /api/metas: proxy puro de upstream /api/metas. Sem hardcode local.
+// Erro upstream propaga 502 — front cai em lastMetas.
+const UPSTREAM_METAS = process.env.METAS_UPSTREAM_URL || "https://dados-4ew4.onrender.com/api/metas";
 
 app.get("/api/metas", async (_req, res) => {
   try {
-    const data = await getMetasFromDatabase();
+    const r = await fetch(UPSTREAM_METAS, { headers: { Accept: "application/json" } });
+    if (!r.ok) throw new Error(`upstream HTTP ${r.status}`);
+    const data = await r.json();
     res.set("Cache-Control", "no-store");
     res.json(data);
   } catch (err) {
     console.error("Falha em /api/metas:", err);
-    res.status(500).json({ error: err.message });
+    res.status(502).json({ error: err.message });
   }
 });
 

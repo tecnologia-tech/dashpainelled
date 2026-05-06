@@ -1,11 +1,16 @@
-// Vercel serverless: metas estáticas (espelha defaults do server local).
-// Mantém /api/metas funcional em produção sem precisar de DB.
+// Vercel serverless: proxy puro upstream /api/metas. Sem hardcode local.
+// Erro upstream propaga 502 — front cai em lastMetas.
 
-export default function handler(_req, res) {
+const UPSTREAM = process.env.METAS_UPSTREAM_URL || "https://dados-4ew4.onrender.com/api/metas";
+
+export default async function handler(_req, res) {
   res.setHeader("Cache-Control", "no-store");
-  res.status(200).json({
-    meta12p: Number(process.env.META_12P) || 3000000,
-    metaConsultoria: Number(process.env.META_CONSULTORIA) || 1500000,
-    metaLtda: Number(process.env.META_LTDA) || 1500000,
-  });
+  try {
+    const r = await fetch(UPSTREAM, { headers: { Accept: "application/json" } });
+    if (!r.ok) throw new Error(`upstream HTTP ${r.status}`);
+    const data = await r.json();
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(502).json({ error: String(err?.message || err) });
+  }
 }

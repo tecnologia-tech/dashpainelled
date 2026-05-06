@@ -37,21 +37,22 @@ export const CONFIG = {
   },
 
   API: {
-    // Em produção (Vercel) WONS é proxiado por /api/wons (serverless function)
-    // para evitar CORS: o servidor onrender só libera localhost. Em dev, hit direto.
+    // WONS: prod via /api/wons proxy (CORS — onrender só libera localhost). Dev hit direto.
     WONS_URL: import.meta.env.PROD
       ? "/api/wons"
       : "https://dados-4ew4.onrender.com/api/wons",
-    METAS_URL: "/api/metas",
+    // METAS: URL absoluta Render. Sem proxy local. Confirmar CORS upstream em prod.
+    METAS_URL: "https://dados-4ew4.onrender.com/api/metas",
     TIMEOUT_MS: 30000,
     REFRESH_MS: 30000,
   },
 
-  // Fallback usado quando /api/metas falha e não há valor anterior.
+  // Bootstrap antes da primeira resposta da API. Zero — sem hardcode.
+  // Após primeiro fetch ok, lastMetas guarda último valor real (memória).
   METAS_FALLBACK: {
-    meta12p: 3000000,
-    metaConsultoria: 1500000,
-    metaLtda: 1500000,
+    meta12p: 0,
+    metaConsultoria: 0,
+    metaLtda: 0,
   },
 
   // Pipeline da LTDA dentro de /api/wons.
