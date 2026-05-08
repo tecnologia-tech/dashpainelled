@@ -16,7 +16,6 @@ const MODULE_COUNT = 16;
 const COLAB_MESSAGE = "SEJAM BEM VINDOS A TOCA DA PANTERA";
 
 const MODE_OVERLAY_LABELS = {
-  sino: "Modo Sino",
   lastDance: "Modo Last Dance",
   blackFriday: "Modo Black Friday",
   together: "Modo Together",
@@ -127,6 +126,7 @@ export default function PanelPage({
   }, [activeMode]);
 
   const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
+  const isSinoVideo = activeMode === CONFIG.MODES.SINO;
   const isWelcomeColaborador =
     activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
   const isWelcomeCliente =
@@ -189,7 +189,7 @@ export default function PanelPage({
   }, [isTextoLivre, customText]);
 
   useEffect(() => {
-    if (isPanteraVideo) return;
+    if (isPanteraVideo || isSinoVideo) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -313,18 +313,35 @@ export default function PanelPage({
     debugModules,
     debugSeam,
     isPanteraVideo,
+    isSinoVideo,
     isWelcomeColaborador,
     isWelcomeCliente,
     overlayLabel,
   ]);
 
   const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
+  const sinoPath = CONFIG.VIDEO_MODES.SINO?.path ?? "/assets/SINOOO.mp4";
 
   if (isPanteraVideo) {
     return (
       <div className="ledScreen">
         <video
           src={panteraPath}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="ledVideo"
+        />
+      </div>
+    );
+  }
+
+  if (isSinoVideo) {
+    return (
+      <div className="ledScreen">
+        <video
+          src={sinoPath}
           autoPlay
           loop
           muted

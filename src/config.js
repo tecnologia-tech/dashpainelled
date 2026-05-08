@@ -171,6 +171,7 @@ export const CONFIG = {
     NUT_DAY: { label: "Nut Day", path: "/assets/nut-day.mp4" },
     BLACK_FRIDAY: { label: "Black Friday", path: "/assets/black-friday.mp4" },
     PANTERA: { label: "Pantera", path: "/assets/pantera.mp4" },
+    SINO: { label: "Sino", path: "/assets/SINOOO.mp4" },
   },
 
   SINO_ENABLED_DEFAULT: false,
@@ -203,7 +204,7 @@ export const CONFIG = {
 
   MODE_TO_VIDEO_KEY: {
     normal: "NORMAL",
-    sino: "NORMAL",
+    sino: "SINO",
     lastDance: "LAST_DANCE",
     blackFriday: "BLACK_FRIDAY",
     together: "NORMAL",
