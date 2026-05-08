@@ -127,6 +127,7 @@ export default function PanelPage({
 
   const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
   const isSinoVideo = activeMode === CONFIG.MODES.SINO;
+  const isNormal = activeMode === CONFIG.MODES.NORMAL;
   const isWelcomeColaborador =
     activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
   const isWelcomeCliente =
@@ -134,6 +135,28 @@ export default function PanelPage({
   const isTextoLivre =
     activeMode === CONFIG.MODES.TEXTO_LIVRE && !!customText;
   const overlayLabel = MODE_OVERLAY_LABELS[activeMode];
+
+  // NORMAL mode: alternate dash/video each cycle.
+  const [metasPhase, setMetasPhase] = useState("dash");
+  useEffect(() => {
+    if (!isNormal) {
+      setMetasPhase("dash");
+      return;
+    }
+    const dashMs = CONFIG.METAS_ROTATION?.DASH_DURATION_MS ?? 60_000;
+    const videoMs = CONFIG.METAS_ROTATION?.VIDEO_DURATION_MS ?? 60_000;
+    let timeoutId;
+    function schedule(phase) {
+      setMetasPhase(phase);
+      const wait = phase === "dash" ? dashMs : videoMs;
+      timeoutId = setTimeout(() => {
+        schedule(phase === "dash" ? "video" : "dash");
+      }, wait);
+    }
+    schedule("dash");
+    return () => clearTimeout(timeoutId);
+  }, [isNormal]);
+  const isMetasVideo = isNormal && metasPhase === "video";
   useEffect(() => {
     if (isControlled) return;
     let cancelled = false;
@@ -189,7 +212,7 @@ export default function PanelPage({
   }, [isTextoLivre, customText]);
 
   useEffect(() => {
-    if (isPanteraVideo || isSinoVideo) return;
+    if (isPanteraVideo || isSinoVideo || isMetasVideo) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -314,6 +337,7 @@ export default function PanelPage({
     debugSeam,
     isPanteraVideo,
     isSinoVideo,
+    isMetasVideo,
     isWelcomeColaborador,
     isWelcomeCliente,
     overlayLabel,
@@ -321,6 +345,22 @@ export default function PanelPage({
 
   const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
   const sinoPath = CONFIG.VIDEO_MODES.SINO?.path ?? "/assets/SINOOO.mp4";
+  const led12pPath = CONFIG.VIDEO_MODES.LED_12P?.path ?? "/assets/LED%2012P.mp4";
+
+  if (isMetasVideo) {
+    return (
+      <div className="ledScreen">
+        <video
+          src={led12pPath}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="ledVideo"
+        />
+      </div>
+    );
+  }
 
   if (isPanteraVideo) {
     return (

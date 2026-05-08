@@ -172,6 +172,12 @@ export const CONFIG = {
     BLACK_FRIDAY: { label: "Black Friday", path: "/assets/black-friday.mp4" },
     PANTERA: { label: "Pantera", path: "/assets/pantera.mp4" },
     SINO: { label: "Sino", path: "/assets/SINOOO.mp4" },
+    LED_12P: { label: "LED 12P", path: "/assets/LED%2012P.mp4" },
+  },
+
+  METAS_ROTATION: {
+    DASH_DURATION_MS: 60_000,
+    VIDEO_DURATION_MS: 60_000,
   },
 
   SINO_ENABLED_DEFAULT: false,
