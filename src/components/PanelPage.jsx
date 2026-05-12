@@ -18,7 +18,6 @@ const COLAB_MESSAGE = "SEJAM BEM VINDOS A TOCA DA PANTERA";
 const MODE_OVERLAY_LABELS = {
   lastDance: "Modo Last Dance",
   blackFriday: "Modo Black Friday",
-  together: "Modo Together",
   nutDay: "Modo NutDay",
 };
 
@@ -127,6 +126,7 @@ export default function PanelPage({
 
   const isPanteraVideo = activeMode === CONFIG.MODES.PANTERA_VIDEO;
   const isSinoVideo = activeMode === CONFIG.MODES.SINO;
+  const isTogetherVideo = activeMode === CONFIG.MODES.TOGETHER;
   const isNormal = activeMode === CONFIG.MODES.NORMAL;
   const isWelcomeColaborador =
     activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
@@ -212,7 +212,7 @@ export default function PanelPage({
   }, [isTextoLivre, customText]);
 
   useEffect(() => {
-    if (isPanteraVideo || isSinoVideo || isMetasVideo) return;
+    if (isPanteraVideo || isSinoVideo || isTogetherVideo || isMetasVideo) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -337,6 +337,7 @@ export default function PanelPage({
     debugSeam,
     isPanteraVideo,
     isSinoVideo,
+    isTogetherVideo,
     isMetasVideo,
     isWelcomeColaborador,
     isWelcomeCliente,
@@ -345,6 +346,7 @@ export default function PanelPage({
 
   const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
   const sinoPath = CONFIG.VIDEO_MODES.SINO?.path ?? "/assets/SINOOO.mp4";
+  const togetherPath = CONFIG.VIDEO_MODES.TOGETHER?.path ?? "/assets/together.mp4";
   const led12pPath = CONFIG.VIDEO_MODES.LED_12P?.path ?? "/assets/LED%2012P.mp4";
 
   if (isMetasVideo) {
@@ -382,6 +384,21 @@ export default function PanelPage({
       <div className="ledScreen">
         <video
           src={sinoPath}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="ledVideo"
+        />
+      </div>
+    );
+  }
+
+  if (isTogetherVideo) {
+    return (
+      <div className="ledScreen">
+        <video
+          src={togetherPath}
           autoPlay
           loop
           muted

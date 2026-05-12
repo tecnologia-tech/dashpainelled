@@ -171,7 +171,8 @@ export const CONFIG = {
     NUT_DAY: { label: "Nut Day", path: "/assets/nut-day.mp4" },
     BLACK_FRIDAY: { label: "Black Friday", path: "/assets/black-friday.mp4" },
     PANTERA: { label: "Pantera", path: "/assets/pantera.mp4" },
-    SINO: { label: "Sino", path: "/assets/SINOOO.mp4" },
+    SINO: { label: "Sino", path: "/assets/together.mp4" },
+    TOGETHER: { label: "Together", path: "/assets/together.mp4" },
     LED_12P: { label: "LED 12P", path: "/assets/LED%2012P.mp4" },
   },
 
@@ -213,7 +214,7 @@ export const CONFIG = {
     sino: "SINO",
     lastDance: "LAST_DANCE",
     blackFriday: "BLACK_FRIDAY",
-    together: "NORMAL",
+    together: "TOGETHER",
     bemVindoCliente: "NORMAL",
     bemVindoColaborador: "NORMAL",
     nutDay: "NUT_DAY",
