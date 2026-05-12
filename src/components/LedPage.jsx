@@ -25,7 +25,7 @@ function readOffsetX() {
     if (Number.isFinite(n)) return n;
   }
   return CONFIG.PANEL?.OFFSET_X ?? 0;
-}
+} 
 
 export default function LedPage() {
   const debugModules = shouldDebugModules();
