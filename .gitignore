@@ -9,3 +9,4 @@ Thumbs.db
 .env
 # Saídas geradas
 *.zip
+public/assets/together.mp4
