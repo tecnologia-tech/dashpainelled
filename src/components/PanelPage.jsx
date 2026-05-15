@@ -107,6 +107,7 @@ export default function PanelPage({
   activeMode: controlledMode,
   welcomeName = "",
   customText = "",
+  forceMetas = false,
 } = {}) {
   void embedded;
   const canvasRef = useRef(null);
@@ -139,7 +140,7 @@ export default function PanelPage({
   // NORMAL mode: alternate dash/video each cycle.
   const [metasPhase, setMetasPhase] = useState("dash");
   useEffect(() => {
-    if (!isNormal) {
+    if (!isNormal || forceMetas) {
       setMetasPhase("dash");
       return;
     }
@@ -155,10 +156,10 @@ export default function PanelPage({
     }
     schedule("dash");
     return () => clearTimeout(timeoutId);
-  }, [isNormal]);
+  }, [isNormal, forceMetas]);
   const isMetasVideo = isNormal && metasPhase === "video";
   useEffect(() => {
-    if (isControlled) return;
+    if (isControlled || forceMetas) return;
     let cancelled = false;
     function loadOnce() {
       getSettings()
@@ -175,10 +176,10 @@ export default function PanelPage({
       cancelled = true;
       clearInterval(id);
     };
-  }, [isControlled]);
+  }, [isControlled, forceMetas]);
 
   useEffect(() => {
-    if (isControlled) return;
+    if (isControlled || forceMetas) return;
     function onKeyDown(e) {
       const mode = KEY_TO_MODE[e.key];
       if (!mode) return;
@@ -197,7 +198,7 @@ export default function PanelPage({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isControlled]);
+  }, [isControlled, forceMetas]);
 
   useEffect(() => {
     if (isWelcomeCliente) {
