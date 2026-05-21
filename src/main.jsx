@@ -11,6 +11,7 @@ const normalizedPath = window.location.pathname.replace(/\/+$/, "").toLowerCase(
 const isLedRoute = normalizedPath === "/led";
 const isClienteNaCasaRoute = normalizedPath === "/clientenacasa";
 const isMetasRoute = normalizedPath === "/metas";
+const isLiveRoute = normalizedPath === "/live";
 const isPanelRoute = typeof window !== "undefined"
   && new URLSearchParams(window.location.search).has("panel");
 
@@ -18,6 +19,7 @@ function pickRoot() {
   if (isLedRoute) return <LedPage />;
   if (isClienteNaCasaRoute) return <ClienteNaCasaPage />;
   if (isMetasRoute) return <PanelPage activeMode={CONFIG.MODES.NORMAL} forceMetas />;
+  if (isLiveRoute) return <PanelPage activeMode={CONFIG.MODES.LIVE} />;
   if (isPanelRoute) return <PanelPage />;
   return <App />;
 }

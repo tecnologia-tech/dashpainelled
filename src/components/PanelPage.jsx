@@ -4,6 +4,7 @@ import * as background from "../layers/backgroundLayer.js";
 import * as barsTest from "../layers/barsTestLayer.js";
 import * as colaboradorTickerLayer from "../layers/colaboradorTickerLayer.js";
 import * as goalsTicker from "../layers/goalsTickerLayer.js";
+import * as liveTickerLayer from "../layers/liveTickerLayer.js";
 import * as textTickerLayer from "../layers/textTickerLayer.js";
 import * as welcomeClienteLayer from "../layers/welcomeClienteLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
@@ -32,6 +33,7 @@ const KEY_TO_MODE = {
   F19: CONFIG.MODES.BEM_VINDO_COLABORADOR,
   F20: CONFIG.MODES.NUT_DAY,
   F21: CONFIG.MODES.PANTERA_VIDEO,
+  F22: CONFIG.MODES.LIVE,
 };
 function normalizeMode(m) {
   return LEGACY_MODE_ALIAS[m] ?? m;
@@ -135,6 +137,7 @@ export default function PanelPage({
     activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
   const isTextoLivre =
     activeMode === CONFIG.MODES.TEXTO_LIVRE && !!customText;
+  const isLive = activeMode === CONFIG.MODES.LIVE;
   const overlayLabel = MODE_OVERLAY_LABELS[activeMode];
 
   // NORMAL mode: alternate dash/video each cycle.
@@ -230,6 +233,7 @@ export default function PanelPage({
     goalsTicker.ensureLoaded?.();
     colaboradorTickerLayer.setText(COLAB_MESSAGE);
     const colabImgPromise = colaboradorTickerLayer.ensureLoaded();
+    const liveImgPromise = liveTickerLayer.ensureLoaded();
     if (!isBars && !isWelcomeColaborador) ensureGoals();
 
     let raf;
@@ -275,7 +279,9 @@ export default function PanelPage({
           ? welcomeClienteLayer
           : isTextoLivre
             ? textTickerLayer
-            : goalsTicker;
+            : isLive
+              ? liveTickerLayer
+              : goalsTicker;
 
       ctx.font = CONFIG.TICKER.FONT;
       let items = [];
@@ -324,6 +330,7 @@ export default function PanelPage({
       if (document.fonts) await document.fonts.ready;
       await bgPromise;
       if (isWelcomeColaborador) await colabImgPromise;
+      if (isLive) await liveImgPromise;
       if (cancelled) return;
       raf = requestAnimationFrame(frame);
     })();
@@ -342,6 +349,8 @@ export default function PanelPage({
     isMetasVideo,
     isWelcomeColaborador,
     isWelcomeCliente,
+    isTextoLivre,
+    isLive,
     overlayLabel,
   ]);
 

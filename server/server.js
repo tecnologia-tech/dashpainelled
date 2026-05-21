@@ -21,6 +21,7 @@ const allowedModes = [
   "nutDay",
   "panteraVideo",
   "textoLivre",
+  "live",
 ];
 
 function readSettings() {

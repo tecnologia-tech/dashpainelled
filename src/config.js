@@ -157,6 +157,11 @@ export const CONFIG = {
     BULLET_PAD: 80, // gap igual antes e depois da bolinha
     LOGO_INNER_PAD: 360, // gap interno bola↔logo 12P (cada lado)
     LOGO_OUTER_PAD: 320, // gap externo texto↔bola e bola↔próximo bloco no separador 12P
+    // Live mode — pulseDot + texto + pulseDot + logo 12P.
+    LIVE_DOT_TO_TEXT: 24, // pulseDot ↔ texto "ESTAMOS EM LIVE!!!"
+    LIVE_TEXT_TO_DOT: 24, // texto ↔ segundo pulseDot
+    LIVE_DOT_TO_LOGO: 360, // pulseDot ↔ logo 12P (logo como pausa visual)
+    LIVE_LOGO_TO_DOT: 360, // logo 12P ↔ pulseDot do próximo ciclo
   },
 
   DISPLAY_ROTATION: {
@@ -194,6 +199,7 @@ export const CONFIG = {
     NUT_DAY: "nutDay",
     PANTERA_VIDEO: "panteraVideo",
     TEXTO_LIVRE: "textoLivre",
+    LIVE: "live",
   },
 
   MODE_LABELS: {
@@ -207,6 +213,7 @@ export const CONFIG = {
     nutDay: "Nut Day",
     panteraVideo: "Pantera",
     textoLivre: "Texto",
+    live: "Live",
   },
 
   MODE_TO_VIDEO_KEY: {
@@ -220,6 +227,7 @@ export const CONFIG = {
     nutDay: "NUT_DAY",
     panteraVideo: "PANTERA",
     textoLivre: "NORMAL",
+    live: "NORMAL",
   },
 
   MODE_PLACEHOLDERS: {
