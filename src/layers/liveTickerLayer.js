@@ -26,9 +26,9 @@ const DOT_COLOR = "#ff1a1a";
 const IMG_PATH = "/assets/12P.png";
 const LOGO_HEIGHT_PX = 96;
 
-// Diâmetro do dot = bandH * DOT_DIAMETER_RATIO (~22% da altura).
+// Diâmetro do dot = bandH * DOT_DIAMETER_RATIO (~27.5% da altura).
 // Slot horizontal (w no item) = diâmetro — sem espaço fantasma.
-const DOT_DIAMETER_RATIO = 0.22;
+const DOT_DIAMETER_RATIO = 0.275;
 const PULSE_HZ = 1;
 
 // Fallbacks caso TICKER_SPACING não esteja definido (esperado no config atual).
