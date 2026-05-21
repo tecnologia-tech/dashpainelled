@@ -10,9 +10,15 @@
 
 import { CONFIG } from "../config.js";
 
-const TEXT = "ESTAMOS EM LIVE!!!";
-const TEXT_COLOR = "#ff1a1a";
-const STROKE_COLOR = "#3a0000";
+// Texto bicolor: "ESTAMOS EM " branco + "LIVE!!!" vermelho.
+// Espaço já está no fim do PART1, portanto os dois desenham sem gap entre si.
+const PART1_TEXT = "ESTAMOS EM ";
+const PART2_TEXT = "LIVE!!!";
+const PART1_COLOR = "#ffffff";
+const PART1_STROKE_COLOR = "#1a1a1a";
+const PART1_STROKE_WIDTH = 0.8;
+const PART2_COLOR = "#ff1a1a";
+const PART2_STROKE_COLOR = "#3a0000";
 const DOT_COLOR = "#ff1a1a";
 
 // Logo 12P — altura local fixa, menor que colaboradorTickerLayer.
@@ -20,8 +26,9 @@ const DOT_COLOR = "#ff1a1a";
 const IMG_PATH = "/assets/12P.png";
 const LOGO_HEIGHT_PX = 96;
 
-// Diâmetro do dot = bandH * DOT_DIAMETER_RATIO (~44% da altura).
-const DOT_DIAMETER_RATIO = 0.44;
+// Diâmetro do dot = bandH * DOT_DIAMETER_RATIO (~22% da altura).
+// Slot horizontal (w no item) = diâmetro — sem espaço fantasma.
+const DOT_DIAMETER_RATIO = 0.22;
 const PULSE_HZ = 1;
 
 // Fallbacks caso TICKER_SPACING não esteja definido (esperado no config atual).
@@ -41,7 +48,7 @@ export function setText() {
 }
 
 export function getText() {
-  return TEXT;
+  return PART1_TEXT + PART2_TEXT;
 }
 
 export function getIconStatus() {
@@ -117,31 +124,44 @@ function makeDotItem(x, diameter, bandH) {
   };
 }
 
-function makeTextItem(text, color, x, w, y) {
+function drawPart(ctx, text, drawX, y, fillColor, strokeColor, strokeWidth) {
+  if (CONFIG.TICKER.SHADOW) {
+    ctx.shadowColor = fillColor;
+    ctx.shadowBlur = CONFIG.TICKER.SHADOW_BLUR;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+  if (strokeColor && strokeWidth > 0) {
+    ctx.lineWidth = strokeWidth;
+    ctx.strokeStyle = strokeColor;
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    ctx.strokeText(text, drawX, y);
+  }
+  ctx.fillStyle = fillColor;
+  ctx.fillText(text, drawX, y);
+}
+
+function makeBicolorTextItem(x, totalW, part1W, y) {
   return {
     type: "text",
     x,
-    w,
+    w: totalW,
     draw(ctx, drawX) {
       ctx.globalAlpha = 1;
       ctx.font = CONFIG.TICKER.FONT;
       ctx.textBaseline = "middle";
       ctx.textAlign = "left";
-      if (CONFIG.TICKER.SHADOW) {
-        ctx.shadowColor = color;
-        ctx.shadowBlur = CONFIG.TICKER.SHADOW_BLUR;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-      }
-      if (CONFIG.TICKER.STROKE) {
-        ctx.lineWidth = CONFIG.TICKER.STROKE_WIDTH;
-        ctx.strokeStyle = STROKE_COLOR;
-        ctx.lineJoin = "round";
-        ctx.miterLimit = 2;
-        ctx.strokeText(text, drawX, y);
-      }
-      ctx.fillStyle = color;
-      ctx.fillText(text, drawX, y);
+      drawPart(ctx, PART1_TEXT, drawX, y, PART1_COLOR, PART1_STROKE_COLOR, PART1_STROKE_WIDTH);
+      drawPart(
+        ctx,
+        PART2_TEXT,
+        drawX + part1W,
+        y,
+        PART2_COLOR,
+        PART2_STROKE_COLOR,
+        CONFIG.TICKER.STROKE ? CONFIG.TICKER.STROKE_WIDTH : 0,
+      );
     },
   };
 }
@@ -162,9 +182,15 @@ function makeLogoItem(x, w, h, bandH) {
   };
 }
 
+function measurePhrase(ctx) {
+  const part1W = measureTextWidth(ctx, PART1_TEXT);
+  const part2W = measureTextWidth(ctx, PART2_TEXT);
+  return { part1W, part2W, totalW: part1W + part2W };
+}
+
 export function measureCycle(ctx, bandH) {
   const H = bandH ?? CONFIG.HEIGHT;
-  const textW = measureTextWidth(ctx, TEXT);
+  const { totalW: textW } = measurePhrase(ctx);
   const dotW = dotDiameter(H);
   const { w: logoW } = scaledImgSize();
   const sp = spacing();
@@ -178,7 +204,7 @@ export function measureCycle(ctx, bandH) {
 
 export function getItems(ctx, bandH) {
   const H = bandH ?? CONFIG.HEIGHT;
-  const textW = measureTextWidth(ctx, TEXT);
+  const { part1W, totalW: textW } = measurePhrase(ctx);
   const dotW = dotDiameter(H);
   const { w: logoW, h: logoH } = scaledImgSize();
   const sp = spacing();
@@ -191,8 +217,8 @@ export function getItems(ctx, bandH) {
   items.push(makeDotItem(x, dotW, H));
   x += dotW + sp.dotToText;
 
-  // 2. texto
-  items.push(makeTextItem(TEXT, TEXT_COLOR, x, textW, y));
+  // 2. texto bicolor (PART1 branco + PART2 vermelho, sem gap interno)
+  items.push(makeBicolorTextItem(x, textW, part1W, y));
   x += textW + sp.textToDot;
 
   // 3. pulseDot
