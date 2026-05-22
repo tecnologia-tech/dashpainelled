@@ -20,6 +20,7 @@ const allowedModes = [
   "bemVindoColaborador",
   "nutDay",
   "panteraVideo",
+  "ra",
   "textoLivre",
   "live",
 ];

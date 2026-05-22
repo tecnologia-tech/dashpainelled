@@ -4,6 +4,7 @@ import ControlPanel from "./components/ControlPanel.jsx";
 import PanelPage from "./components/PanelPage.jsx";
 import { getSettings, saveSettings } from "./services/settingsService.js";
 import { getNextClienteNaCasa } from "./services/clienteNaCasaService.js";
+import { KEY_TO_MODE } from "./services/modeKeymap.js";
 
 function isValidMode(m) {
   return typeof m === "string" && Object.values(CONFIG.MODES).includes(m);
@@ -23,19 +24,6 @@ function deriveLegacyMode(s) {
   if (s.videoMode === "BLACK_FRIDAY") return CONFIG.MODES.BLACK_FRIDAY;
   return CONFIG.MODES.NORMAL;
 }
-
-const KEY_TO_MODE = {
-  F13: CONFIG.MODES.NORMAL,
-  F14: CONFIG.MODES.SINO,
-  F15: CONFIG.MODES.LAST_DANCE,
-  F16: CONFIG.MODES.BLACK_FRIDAY,
-  F17: CONFIG.MODES.TOGETHER,
-  F18: CONFIG.MODES.BEM_VINDO_CLIENTE,
-  F19: CONFIG.MODES.BEM_VINDO_COLABORADOR,
-  F20: CONFIG.MODES.NUT_DAY,
-  F21: CONFIG.MODES.PANTERA_VIDEO,
-  F22: CONFIG.MODES.LIVE,
-};
 
 export default function App() {
   const [activeMode, setActiveMode] = useState(CONFIG.ACTIVE_MODE_DEFAULT);

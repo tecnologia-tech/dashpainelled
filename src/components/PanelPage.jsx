@@ -9,6 +9,7 @@ import * as textTickerLayer from "../layers/textTickerLayer.js";
 import * as welcomeClienteLayer from "../layers/welcomeClienteLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
 import { getSettings, saveSettings } from "../services/settingsService.js";
+import { KEY_TO_MODE } from "../services/modeKeymap.js";
 
 const PANEL_WIDTH = 2112;
 const PANEL_HEIGHT = 192;
@@ -20,21 +21,10 @@ const MODE_OVERLAY_LABELS = {
   lastDance: "Modo Last Dance",
   blackFriday: "Modo Black Friday",
   nutDay: "Modo NutDay",
+  ra: "RA",
 };
 
 const LEGACY_MODE_ALIAS = { bemVindo: "bemVindoCliente" };
-const KEY_TO_MODE = {
-  F13: CONFIG.MODES.NORMAL,
-  F14: CONFIG.MODES.SINO,
-  F15: CONFIG.MODES.LAST_DANCE,
-  F16: CONFIG.MODES.BLACK_FRIDAY,
-  F17: CONFIG.MODES.TOGETHER,
-  F18: CONFIG.MODES.BEM_VINDO_CLIENTE,
-  F19: CONFIG.MODES.BEM_VINDO_COLABORADOR,
-  F20: CONFIG.MODES.NUT_DAY,
-  F21: CONFIG.MODES.PANTERA_VIDEO,
-  F22: CONFIG.MODES.LIVE,
-};
 function normalizeMode(m) {
   return LEGACY_MODE_ALIAS[m] ?? m;
 }
