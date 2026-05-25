@@ -104,11 +104,71 @@ export const CONFIG = {
       OFFSET_X: 0,
       OFFSET_Y: 0,
     },
+    // Separador do modo Last Dance (logo amarelo "Last Dance" sobre rosa).
+    // _trim = PNG recortado ao bounding box do conteúdo (margem transparente
+    // removida). O original tinha tinta deslocada à esquerda (margem R=103,
+    // L=0), o que jogava o logo fora do centro do slot mesmo com gaps simétricos.
+    LAST_DANCE: {
+      PATH: "/assets/Last_Dance_trim.png",
+      SCALE: 1.0,
+      OFFSET_X: 0,
+      OFFSET_Y: 0,
+    },
+  },
+
+  // Variantes "LD" dos ícones de setor (personagens temáticos Last Dance).
+  // Usadas só quando o theme define iconSet: "LD". Sizing herda de CONFIG.ICONS.
+  ICONS_LD: {
+    NETO:    "/assets/icons/netoLD.png",
+    CAMONHA: "/assets/icons/camonhaLD.png",
+    ARIANE:  "/assets/icons/arianeLD.png",
+  },
+
+  // Temas por modo. goalsTickerLayer aceita um theme opcional e troca
+  // fonte/paleta/ícone separador SEM duplicar a lógica de blocos/loop.
+  // Mesma fonte de dados e mesmo cálculo do modo Metas — só muda o visual.
+  MODE_THEMES: {
+    lastDance: {
+      bg: "#E6005C",     // fundo rosa/magenta
+      fg: "#FFD60A",     // amarelo vivo (nomes de setor + valores) — mais luminoso no LED
+      accent: "#FFFFFF", // rótulos "Alcançado:" / "Meta:" em branco puro
+      // Fonte oficial Last Dance (local). Mesma família do resto do projeto.
+      font: 'normal 92px "Last Dance", Impact, sans-serif',
+      numberFont: 'normal 92px "Last Dance", Impact, sans-serif',
+      fontStyle: "normal",
+      noStroke: true,        // texto amarelo sólido — sem contorno e sem sombra
+      iconSet: "LD",         // ícones de setor usam as variantes *LD.png
+      sectorIconScale: 1.4,  // bonecos LD ~88% da altura da strip (base = ICON_SLOT.HEIGHT)
+      sectorIconPadding: 6,  // margem topo/baixo; também limita o clamp (capH=H-2*pad=180)
+      // Os 3 bonecos LD agora são PNG 500x500 com conteúdo centralizado e
+      // ~0.98 de preenchimento de altura → mesma escala base, sem override por ícone.
+      // Sombra suave (tira o "chapado"). Não aplica ao separador (logo).
+      textShadow: { enabled: true, color: "rgba(0,0,0,0.45)", blur: 8, offsetX: 2, offsetY: 3 },
+      iconShadow: { enabled: true, color: "rgba(0,0,0,0.45)", blur: 6, offsetX: 2, offsetY: 3 },
+      separatorShadow: false,
+      blockGap: 220,         // respiro entre blocos (padrão metas ~120-140)
+      separatorGap: 80,      // padding de cada lado do logo separador
+      separatorIconKey: "LAST_DANCE", // logo Last Dance no lugar da bolinha "•"
+      separatorImageScale: 1.6, // logo maior/proporcional (testar 1.4–1.8)
+      separatorPadding: 40,     // respiro extra ao redor do logo separador
+      // Moldura pontilhada fixa (overlay, não rola com o ticker).
+      // Só topo e base; opacidade suave.
+      border: {
+        enabled: true,
+        color: "#F5D90A",
+        width: 4,
+        dash: [10, 12],
+        margin: 6,
+        sides: ["top", "bottom"],
+        opacity: 0.5,
+      },
+    },
   },
 
   TICKER: {
     SPEED_PX_PER_SECOND: 180,
     GAP: 0, // gap final do ciclo (espaçamento controlado por TICKER_SPACING)
+    // Fonte padrão (Metas e demais modos). Last Dance só via MODE_THEMES.lastDance.
     FONT: "800 86px Montserrat, Arial, sans-serif",
     TEXT_Y: 126,
     COLOR: "#FFFFFF",
@@ -172,7 +232,7 @@ export const CONFIG = {
 
   VIDEO_MODES: {
     NORMAL: { label: "Normal", path: "/assets/video.mp4" },
-    LAST_DANCE: { label: "Last Dance", path: "/assets/last-dance.mp4" },
+    // LAST_DANCE removido: agora é ticker de metas temático (ver MODE_THEMES.lastDance).
     NUT_DAY: { label: "Nut Day", path: "/assets/nut-day.mp4" },
     BLACK_FRIDAY: { label: "Black Friday", path: "/assets/black-friday.mp4" },
     PANTERA: { label: "Pantera", path: "/assets/pantera.mp4" },
@@ -221,7 +281,7 @@ export const CONFIG = {
   MODE_TO_VIDEO_KEY: {
     normal: "NORMAL",
     sino: "SINO",
-    lastDance: "LAST_DANCE",
+    // lastDance removido: não é mais vídeo, é ticker temático.
     blackFriday: "BLACK_FRIDAY",
     together: "TOGETHER",
     bemVindoCliente: "NORMAL",

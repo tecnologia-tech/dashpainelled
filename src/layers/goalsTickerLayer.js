@@ -23,10 +23,21 @@ const METAS = [
 ];
 
 // Ícones extra carregados além dos das metas (separadores, logos, etc.).
-const EXTRA_ICON_KEYS = ["LOGO_12P"];
+// LAST_DANCE entra aqui para o lastDanceLayer reusar o mesmo cache de ícones.
+const EXTRA_ICON_KEYS = ["LOGO_12P", "LAST_DANCE"];
+
+// Fonte do ticker: theme.font sobrepõe a fonte padrão (modo Metas).
+function tickerFont(theme) {
+  return theme?.font || CONFIG.TICKER.FONT;
+}
 
 const FALLBACK_PALETTE = { dark: "#888", mid: "#BBB", light: "#DDD", strong: "#FFF" };
-function sectorPalette(colorKey) {
+function sectorPalette(colorKey, theme) {
+  // Com theme: paleta única (sem cor por setor). mid/strong = fg (valores e
+  // nomes), light/dark = accent (rótulos "Alcançado:"/"Meta:").
+  if (theme) {
+    return { dark: theme.accent, mid: theme.fg, light: theme.accent, strong: theme.fg };
+  }
   const p = CONFIG.SECTOR_COLORS?.[colorKey];
   if (!p) return FALLBACK_PALETTE;
   if (typeof p === "string") return { dark: p, mid: p, light: p, strong: p };
@@ -49,28 +60,120 @@ function tryLoad(src) {
 
 export function ensureLoaded() {
   if (iconPromise) return iconPromise;
-  const allKeys = [...METAS.map((m) => m.iconKey), ...EXTRA_ICON_KEYS];
-  for (const key of allKeys) icons[key] = { img: null, status: "idle" };
+  // Tarefas de carga: ícones base (CONFIG.ICONS) + variantes LD (CONFIG.ICONS_LD),
+  // estas últimas no cache sob a chave `${BASE}_LD`.
+  const baseKeys = [...METAS.map((m) => m.iconKey), ...EXTRA_ICON_KEYS];
+  const tasks = baseKeys.map((k) => ({ cacheKey: k, path: CONFIG.ICONS?.[k]?.PATH }));
+  const ld = CONFIG.ICONS_LD || {};
+  for (const k of Object.keys(ld)) tasks.push({ cacheKey: `${k}_LD`, path: ld[k] });
 
-  iconPromise = Promise.all(allKeys.map(async (key) => {
-    const cfg = CONFIG.ICONS?.[key];
-    if (!cfg?.PATH) {
-      icons[key] = { img: null, status: "skipped" };
+  for (const t of tasks) icons[t.cacheKey] = { img: null, status: "idle" };
+
+  iconPromise = Promise.all(tasks.map(async ({ cacheKey, path }) => {
+    if (!path) {
+      icons[cacheKey] = { img: null, status: "skipped" };
       return;
     }
-    icons[key] = { img: null, status: "loading" };
-    const img = await tryLoad(cfg.PATH);
+    icons[cacheKey] = { img: null, status: "loading" };
+    const img = await tryLoad(path);
     if (img) {
-      icons[key] = { img, status: "ready" };
-      console.log(`Ícone ${key} carregado: ${cfg.PATH} (${img.naturalWidth}x${img.naturalHeight})`);
+      icons[cacheKey] = { img, status: "ready" };
+      console.log(`Ícone ${cacheKey} carregado: ${path} (${img.naturalWidth}x${img.naturalHeight})`);
     } else {
-      icons[key] = { img: null, status: "error" };
-      console.warn(`Ícone ${key} não carregou — bloco será pulado. Caminho: ${cfg.PATH}`);
+      icons[cacheKey] = { img: null, status: "error" };
+      console.warn(`Ícone ${cacheKey} não carregou — bloco será pulado. Caminho: ${path}`);
     }
   }));
   return iconPromise;
 }
 ensureLoaded();
+
+// Resolve a imagem do ícone considerando o iconSet do theme (ex.: "LD").
+// Se a variante não carregou, cai no ícone base e avisa uma vez.
+const warnedLd = new Set();
+function resolveImgKey(key, theme) {
+  if (theme?.iconSet === "LD") {
+    const ldKey = `${key}_LD`;
+    if (iconReady(ldKey)) return ldKey;
+    if (CONFIG.ICONS_LD?.[key] && !warnedLd.has(key)) {
+      warnedLd.add(key);
+      console.warn(`Variante LD de ${key} indisponível — usando ícone normal.`);
+    }
+  }
+  return key;
+}
+
+// Desenha um ícone (compartilhado entre render e getItems — sem duplicar geometria).
+// Sizing vem de CONFIG.ICONS[baseKey]; imagem pode ser a variante LD.
+// - separador (iconScale): box escalada normal.
+// - boneco LD de setor (iconSet "LD" + tem variante LD): dimensiona pela ALTURA
+//   da strip (sectorIconScale), centralizado, com clamp p/ não cortar.
+// - demais: box slot * scale com contain (modo Metas inalterado).
+function paintIcon(ctx, { baseKey, theme, drawX, blockWidth, iconScale, bandH }) {
+  const imgKey = resolveImgKey(baseKey, theme);
+  if (!iconReady(imgKey)) return;
+  const cfg = CONFIG.ICONS[baseKey] || {};
+  const slot = CONFIG.ICON_SLOT;
+  const img = icons[imgKey].img;
+  const H = bandH ?? CONFIG.HEIGHT;
+  const ratio = (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 1;
+  const isLdSector = theme?.iconSet === "LD" && !!CONFIG.ICONS_LD?.[baseKey];
+
+  let drawW, drawH;
+  if (isLdSector) {
+    const pad = theme.sectorIconPadding | 0;
+    // Override por ícone (ex.: CAMONHA mais alto) sobrepõe o sectorIconScale base.
+    const mul = theme.iconOverrides?.[baseKey]?.scale ?? theme.sectorIconScale ?? 1;
+    const capH = H - pad * 2;
+    let targetH = slot.HEIGHT * mul;
+    if (targetH > capH) targetH = capH; // não estoura a strip
+    drawH = targetH;
+    drawW = targetH * ratio;
+    if (drawW > blockWidth) { drawH *= blockWidth / drawW; drawW = blockWidth; }
+  } else {
+    const scale = iconScale ?? cfg.SCALE ?? 1;
+    let boxW = slot.WIDTH * scale;
+    let boxH = slot.HEIGHT * scale;
+    const maxH = theme ? H - 16 : Infinity; // margem só em modos temáticos
+    if (boxH > maxH) { boxW *= maxH / boxH; boxH = maxH; }
+    drawW = boxW;
+    drawH = boxW / ratio;
+    if (drawH > boxH) { drawH = boxH; drawW = boxH * ratio; }
+  }
+
+  // Bonecos LD: centraliza exato (ignora offsets do ícone base headshot).
+  const offX = isLdSector ? 0 : (cfg.OFFSET_X || 0);
+  const offY = isLdSector ? 0 : (cfg.OFFSET_Y || 0);
+  const dX = drawX + (blockWidth - drawW) / 2 + offX;
+  const dY = (H - drawH) / 2 + offY;
+  // Sombra só nos bonecos LD (iconShadow). Separador (logo) nunca leva sombra.
+  const sh = isLdSector ? theme?.iconShadow : null;
+  if (sh?.enabled) {
+    ctx.shadowColor = sh.color;
+    ctx.shadowBlur = sh.blur ?? 0;
+    ctx.shadowOffsetX = sh.offsetX ?? 0;
+    ctx.shadowOffsetY = sh.offsetY ?? 0;
+  } else {
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+  if (cfg.FLIP_X) {
+    ctx.save();
+    ctx.translate(dX + drawW, dY);
+    ctx.scale(-1, 1);
+    ctx.drawImage(img, 0, 0, drawW, drawH);
+    ctx.restore();
+  } else {
+    ctx.drawImage(img, dX, dY, drawW, drawH);
+  }
+  // Reseta sombra para não vazar em desenhos seguintes.
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+}
 
 export function getIconStatus() {
   return Object.fromEntries(Object.entries(icons).map(([k, v]) => [k, v.status]));
@@ -83,55 +186,93 @@ function iconReady(key) {
 
 // --- Construção dos blocos ---
 
-function buildBlocks(ctx, goals) {
+function buildBlocks(ctx, goals, theme) {
   const slot = CONFIG.ICON_SLOT;
   const sp = CONFIG.TICKER_SPACING;
-  ctx.font = CONFIG.TICKER.FONT;
+  const baseFont = tickerFont(theme);
+  const numFont = theme?.numberFont || baseFont;
+  ctx.font = baseFont;
+  // Separador entre blocos: ícone do theme (ex.: logo Last Dance) ou bolinha "•".
+  const sepKey = theme?.separatorIconKey;
+  const useIconSep = !!sepKey && iconReady(sepKey);
+  // theme pode esconder ícones de setor e alargar os respiros.
+  const hideSectorIcons = !!theme?.hideSectorIcons;
+  const sepGap = theme?.separatorGap;
+  const blockGap = theme?.blockGap | 0;
+  const sepScale = theme?.separatorImageScale ?? 1;
+  const sepPad = theme?.separatorPadding | 0;
 
-  const text = (s, color = CONFIG.TICKER.COLOR) => ({
-    type: "text",
-    text: s,
-    color,
-    width: Math.ceil(ctx.measureText(s).width),
-  });
+  // Mede com a fonte do bloco (label vs número podem diferir) e guarda a fonte.
+  const text = (s, color = CONFIG.TICKER.COLOR, font = baseFont) => {
+    const prev = ctx.font;
+    ctx.font = font;
+    const width = Math.ceil(ctx.measureText(s).width);
+    ctx.font = prev;
+    return { type: "text", text: s, color, width, font };
+  };
 
   const gap = (width) => ({ type: "gap", width: width | 0 });
 
-  const icon = (key) => ({
+  const icon = (key) => {
+    // Boneco LD ocupa mais largura (proporcional à escala efetiva, com override).
+    const ldSector = theme?.iconSet === "LD" && !!CONFIG.ICONS_LD?.[key];
+    const ldScale = theme?.iconOverrides?.[key]?.scale ?? theme?.sectorIconScale ?? 1;
+    const width = ldSector
+      ? Math.ceil(slot.WIDTH * ldScale + (theme.sectorIconPadding | 0) * 2)
+      : slot.WIDTH + (slot.MARGIN_X | 0);
+    return { type: "icon", key, width };
+  };
+
+  // Separador (logo Last Dance): box escalada + padding lateral próprio.
+  const separatorIcon = (key) => ({
     type: "icon",
     key,
-    width: slot.WIDTH + (slot.MARGIN_X | 0),
+    iconScale: sepScale,
+    width: Math.ceil(slot.WIDTH * sepScale + sepPad * 2),
   });
 
   const addGoalBlock = (blocks, label, iconKey, atingido, meta, palette, opts = {}) => {
-    const leadBulletPad = opts.leadBulletPad ?? sp.BULLET_PAD;
-    const tailBulletPad = opts.tailBulletPad ?? sp.BULLET_PAD;
+    const leadBulletPad = opts.leadBulletPad ?? sepGap ?? sp.BULLET_PAD;
+    const tailBulletPad = opts.tailBulletPad ?? sepGap ?? sp.BULLET_PAD;
     const omitTailBullet = !!opts.omitTailBullet;
-    blocks.push(icon(iconKey));
-    blocks.push(gap(sp.ICON_TO_LABEL));
+    if (!hideSectorIcons) {
+      blocks.push(icon(iconKey));
+      blocks.push(gap(sp.ICON_TO_LABEL));
+    }
     blocks.push(text(label, palette.mid));
     blocks.push(gap(sp.LABEL_TO_ALCANCADO));
     blocks.push(text("Alcançado:", palette.light));
     blocks.push(gap(sp.LABEL_VALUE_GAP));
-    blocks.push(text(atingido, palette.strong));
+    blocks.push(text(atingido, palette.strong, numFont));
     blocks.push(gap(sp.ALCANCADO_TO_META));
     blocks.push(text("Meta:", palette.light));
     blocks.push(gap(sp.LABEL_VALUE_GAP));
-    blocks.push(text(meta, palette.mid));
+    blocks.push(text(meta, palette.mid, numFont));
     if (omitTailBullet) {
       blocks.push(gap(leadBulletPad + tailBulletPad));
+      if (blockGap > 0) blocks.push(gap(blockGap));
+    } else if (useIconSep) {
+      // Logo separador centrado no respiro entre blocos: lead + tail + blockGap
+      // distribuídos igualmente nos dois lados. Espaço antes == espaço depois.
+      const side = Math.round((leadBulletPad + tailBulletPad + blockGap) / 2);
+      blocks.push(gap(side));
+      blocks.push(separatorIcon(sepKey));
+      blocks.push(gap(side));
     } else {
       blocks.push(gap(leadBulletPad));
       blocks.push(text("•", "#FFFFFF"));
       blocks.push(gap(tailBulletPad));
+      if (blockGap > 0) blocks.push(gap(blockGap));
     }
   };
 
   const blocks = [];
   for (const m of METAS) {
     const entry = goals[m.field] || { atingido: 0, meta: 0 };
+    // Separador especial do logo 12P só no modo Metas (sem theme). Com theme,
+    // o separador é uniforme (icon do theme) entre todos os blocos.
     const isLogoSeparator =
-      m.colorKey === "GLOBAL_12P" && iconReady("LOGO_12P");
+      !theme && m.colorKey === "GLOBAL_12P" && iconReady("LOGO_12P");
     const innerPad = sp.LOGO_INNER_PAD ?? sp.BULLET_PAD;
     const outerPad = sp.LOGO_OUTER_PAD ?? sp.BULLET_PAD;
 
@@ -143,7 +284,7 @@ function buildBlocks(ctx, goals) {
       m.iconKey,
       formatAtingido(entry.atingido),
       entry.metaText ?? formatMeta(entry.meta),
-      sectorPalette(m.colorKey),
+      sectorPalette(m.colorKey, theme),
       isLogoSeparator
         ? { leadBulletPad: outerPad, tailBulletPad: innerPad, omitTailBullet: true }
         : {},
@@ -163,18 +304,32 @@ function buildBlocks(ctx, goals) {
   return blocks;
 }
 
-function drawBlocks(ctx, blocks, startX) {
+function drawBlocks(ctx, blocks, startX, theme, bandH) {
   let x = startX;
+  const noStroke = !!theme?.noStroke;
+  const textShadow = theme?.textShadow;
+  ctx.font = tickerFont(theme);
   for (const b of blocks) {
     if (b.type === "text") {
       const fillColor = b.color || CONFIG.TICKER.COLOR;
-      if (CONFIG.TICKER.SHADOW) {
+      if (b.font) ctx.font = b.font;
+      if (textShadow?.enabled) {
+        ctx.shadowColor   = textShadow.color;
+        ctx.shadowBlur    = textShadow.blur ?? 0;
+        ctx.shadowOffsetX = textShadow.offsetX ?? 0;
+        ctx.shadowOffsetY = textShadow.offsetY ?? 0;
+      } else if (!noStroke && CONFIG.TICKER.SHADOW) {
         ctx.shadowColor   = fillColor;
         ctx.shadowBlur    = CONFIG.TICKER.SHADOW_BLUR;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
+      } else {
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur  = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
       }
-      if (CONFIG.TICKER.STROKE) {
+      if (!noStroke && CONFIG.TICKER.STROKE) {
         ctx.lineWidth = CONFIG.TICKER.STROKE_WIDTH;
         ctx.strokeStyle = CONFIG.TICKER.STROKE_COLOR;
         ctx.lineJoin = "round";
@@ -183,39 +338,15 @@ function drawBlocks(ctx, blocks, startX) {
       }
       ctx.fillStyle = fillColor;
       ctx.fillText(b.text, x, CONFIG.TICKER.TEXT_Y);
-    } else if (b.type === "icon" && iconReady(b.key)) {
-      ctx.shadowColor   = "transparent";
-      ctx.shadowBlur    = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-      const cfg = CONFIG.ICONS[b.key];
-      const slot = CONFIG.ICON_SLOT;
-      const item = icons[b.key];
-      const scale = cfg.SCALE ?? 1;
-      const boxW = slot.WIDTH * scale;
-      const boxH = slot.HEIGHT * scale;
-      const nat = item.img;
-      const ratio = (nat.naturalWidth && nat.naturalHeight)
-        ? nat.naturalWidth / nat.naturalHeight
-        : 1;
-      // contain: maior lado da imagem ocupa o lado correspondente da box
-      let drawW = boxW;
-      let drawH = boxW / ratio;
-      if (drawH > boxH) {
-        drawH = boxH;
-        drawW = boxH * ratio;
-      }
-      const drawX = x + (slot.WIDTH  - drawW) / 2 + (cfg.OFFSET_X || 0);
-      const drawY = slot.Y + (slot.HEIGHT - drawH) / 2 + (cfg.OFFSET_Y || 0);
-      if (cfg.FLIP_X) {
-        ctx.save();
-        ctx.translate(drawX + drawW, drawY);
-        ctx.scale(-1, 1);
-        ctx.drawImage(item.img, 0, 0, drawW, drawH);
-        ctx.restore();
-      } else {
-        ctx.drawImage(item.img, drawX, drawY, drawW, drawH);
-      }
+    } else if (b.type === "icon") {
+      paintIcon(ctx, {
+        baseKey: b.key,
+        theme,
+        drawX: x,
+        blockWidth: b.width,
+        iconScale: b.iconScale,
+        bandH,
+      });
     }
     x += b.width;
   }
@@ -239,29 +370,39 @@ export function buildText(goals = getGoals()) {
 export function measureCycle(ctx, opts = {}) {
   const goals = opts.goals ?? getGoals();
   const prevFont = ctx.font;
-  ctx.font = CONFIG.TICKER.FONT;
-  const cycle = naturalCycle(buildBlocks(ctx, goals));
+  ctx.font = tickerFont(opts.theme);
+  const cycle = naturalCycle(buildBlocks(ctx, goals, opts.theme));
   ctx.font = prevFont;
   return cycle || 1;
 }
 
-function makeTextItem(text, color, x, w, y) {
+function makeTextItem(text, color, x, w, y, font, noStroke = false, shadow = null) {
   return {
     type: "text",
     x,
     w,
     draw(ctx, drawX) {
       ctx.globalAlpha = 1;
-      ctx.font = CONFIG.TICKER.FONT;
+      ctx.font = font || CONFIG.TICKER.FONT;
       ctx.textBaseline = "middle";
       ctx.textAlign = "left";
-      if (CONFIG.TICKER.SHADOW) {
+      if (shadow?.enabled) {
+        ctx.shadowColor = shadow.color;
+        ctx.shadowBlur = shadow.blur ?? 0;
+        ctx.shadowOffsetX = shadow.offsetX ?? 0;
+        ctx.shadowOffsetY = shadow.offsetY ?? 0;
+      } else if (!noStroke && CONFIG.TICKER.SHADOW) {
         ctx.shadowColor = color;
         ctx.shadowBlur = CONFIG.TICKER.SHADOW_BLUR;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
+      } else {
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur  = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
       }
-      if (CONFIG.TICKER.STROKE) {
+      if (!noStroke && CONFIG.TICKER.STROKE) {
         ctx.lineWidth = CONFIG.TICKER.STROKE_WIDTH;
         ctx.strokeStyle = CONFIG.TICKER.STROKE_COLOR;
         ctx.lineJoin = "round";
@@ -270,47 +411,29 @@ function makeTextItem(text, color, x, w, y) {
       }
       ctx.fillStyle = color;
       ctx.fillText(text, drawX, y);
+      // reset sombra p/ não vazar no próximo item
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
     },
   };
 }
 
-function makeIconItem(key, x, w) {
+function makeIconItem(b, x, theme, bandH) {
   return {
     type: "icon",
     x,
-    w,
+    w: b.width,
     draw(ctx, drawX) {
-      if (!iconReady(key)) return;
-      const cfg = CONFIG.ICONS[key];
-      const slot = CONFIG.ICON_SLOT;
-      const entry = icons[key];
-      const scale = cfg.SCALE ?? 1;
-      const boxW = slot.WIDTH * scale;
-      const boxH = slot.HEIGHT * scale;
-      const nat = entry.img;
-      const ratio =
-        nat.naturalWidth && nat.naturalHeight
-          ? nat.naturalWidth / nat.naturalHeight
-          : 1;
-      let drawW = boxW;
-      let drawH = boxW / ratio;
-      if (drawH > boxH) {
-        drawH = boxH;
-        drawW = boxH * ratio;
-      }
-      const dX = drawX + (slot.WIDTH - drawW) / 2 + (cfg.OFFSET_X || 0);
-      const dY = slot.Y + (slot.HEIGHT - drawH) / 2 + (cfg.OFFSET_Y || 0);
-      ctx.shadowColor = "transparent";
-      ctx.shadowBlur = 0;
-      if (cfg.FLIP_X) {
-        ctx.save();
-        ctx.translate(dX + drawW, dY);
-        ctx.scale(-1, 1);
-        ctx.drawImage(entry.img, 0, 0, drawW, drawH);
-        ctx.restore();
-      } else {
-        ctx.drawImage(entry.img, dX, dY, drawW, drawH);
-      }
+      paintIcon(ctx, {
+        baseKey: b.key,
+        theme,
+        drawX,
+        blockWidth: b.width,
+        iconScale: b.iconScale,
+        bandH,
+      });
     },
   };
 }
@@ -318,18 +441,21 @@ function makeIconItem(key, x, w) {
 /** Lista plana de itens com posição absoluta. Total inclui gaps. */
 export function getItems(ctx, H, opts = {}) {
   const goals = opts.goals ?? getGoals();
+  const theme = opts.theme;
+  const font = tickerFont(theme);
+  const noStroke = !!theme?.noStroke;
   const prevFont = ctx.font;
-  ctx.font = CONFIG.TICKER.FONT;
-  const blocks = buildBlocks(ctx, goals);
+  ctx.font = font;
+  const blocks = buildBlocks(ctx, goals, theme);
   const items = [];
   const bandH = H || CONFIG.HEIGHT;
   const y = bandH / 2;
   let x = 0;
   for (const b of blocks) {
     if (b.type === "text") {
-      items.push(makeTextItem(b.text, b.color || CONFIG.TICKER.COLOR, x, b.width, y));
+      items.push(makeTextItem(b.text, b.color || CONFIG.TICKER.COLOR, x, b.width, y, b.font || font, noStroke, theme?.textShadow));
     } else if (b.type === "icon") {
-      items.push(makeIconItem(b.key, x, b.width));
+      items.push(makeIconItem(b, x, theme, bandH));
     }
     x += b.width;
   }
@@ -340,10 +466,11 @@ export function getItems(ctx, H, opts = {}) {
 
 // --- Render ---
 
-export function render(ctx, state) {
+export function render(ctx, state, opts = {}) {
   const goals = getGoals();
+  const theme = opts.theme;
 
-  ctx.font = CONFIG.TICKER.FONT;
+  ctx.font = tickerFont(theme);
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
   ctx.fillStyle = CONFIG.TICKER.COLOR;
@@ -354,7 +481,7 @@ export function render(ctx, state) {
 
   const W = state?.width  ?? CONFIG.WIDTH;
   const H = state?.height ?? CONFIG.HEIGHT;
-  const blocks = buildBlocks(ctx, goals);
+  const blocks = buildBlocks(ctx, goals, theme);
   const cycle  = naturalCycle(blocks);
   if (cycle <= 0) return;
   const offset = Math.floor(-((state.progress % 1) * cycle));
@@ -367,7 +494,7 @@ export function render(ctx, state) {
   // desenha cópias até cobrir toda a largura W. Quando cycle < W, várias
   // cópias preenchem; quando cycle >= W, basta uma ou duas.
   for (let x = offset - cycle; x < W + cycle; x += cycle) {
-    drawBlocks(ctx, blocks, x);
+    drawBlocks(ctx, blocks, x, theme, H);
   }
   ctx.restore();
 }

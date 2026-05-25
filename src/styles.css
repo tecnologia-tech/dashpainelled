@@ -1,3 +1,14 @@
+/* Fonte oficial Last Dance (Christopher King) — servida localmente, sem CDN.
+   Licença: Free for Personal Use (ver public/assets/fonts/exFont-License.txt).
+   NÃO é fonte global: aplicada APENAS no modo Last Dance via MODE_THEMES.lastDance. */
+@font-face {
+  font-family: 'Last Dance';
+  src: url('/assets/fonts/LastDance.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 :root {
   --panel: #0a0a0a;
   --fg: #ffffff;

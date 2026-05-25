@@ -4,6 +4,7 @@ import * as background from "../layers/backgroundLayer.js";
 import * as barsTest from "../layers/barsTestLayer.js";
 import * as colaboradorTickerLayer from "../layers/colaboradorTickerLayer.js";
 import * as goalsTicker from "../layers/goalsTickerLayer.js";
+import * as lastDanceLayer from "../layers/lastDanceLayer.js";
 import * as liveTickerLayer from "../layers/liveTickerLayer.js";
 import * as textTickerLayer from "../layers/textTickerLayer.js";
 import * as welcomeClienteLayer from "../layers/welcomeClienteLayer.js";
@@ -18,7 +19,7 @@ const MODULE_COUNT = 16;
 const COLAB_MESSAGE = "SEJAM BEM VINDOS A TOCA DA PANTERA";
 
 const MODE_OVERLAY_LABELS = {
-  lastDance: "Modo Last Dance",
+  // lastDance removido: agora renderiza o ticker temático, não um overlay estático.
   blackFriday: "Modo Black Friday",
   nutDay: "Modo NutDay",
   ra: "RA",
@@ -55,6 +56,31 @@ function drawModeOverlay(ctx, W, H, label) {
   ctx.shadowBlur = 0;
   ctx.fillStyle = "#FFD200";
   ctx.fillText(label, W / 2, H / 2);
+  ctx.restore();
+}
+
+// Moldura pontilhada estática (overlay fixo). Lados configuráveis via b.sides.
+function drawDottedBorder(ctx, W, H, b) {
+  const m = b.margin ?? 6;
+  const sides = b.sides || ["top", "bottom", "left", "right"];
+  ctx.save();
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = b.opacity ?? 1;
+  ctx.strokeStyle = b.color ?? "#F5D90A";
+  ctx.lineWidth = b.width ?? 4;
+  ctx.setLineDash(Array.isArray(b.dash) ? b.dash : [10, 12]);
+  ctx.lineCap = "butt";
+  const line = (x1, y1, x2, y2) => {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  };
+  if (sides.includes("top")) line(m, m, W - m, m);
+  if (sides.includes("bottom")) line(m, H - m, W - m, H - m);
+  if (sides.includes("left")) line(m, m, m, H - m);
+  if (sides.includes("right")) line(W - m, m, W - m, H - m);
   ctx.restore();
 }
 
@@ -128,6 +154,7 @@ export default function PanelPage({
   const isTextoLivre =
     activeMode === CONFIG.MODES.TEXTO_LIVRE && !!customText;
   const isLive = activeMode === CONFIG.MODES.LIVE;
+  const isLastDance = activeMode === CONFIG.MODES.LAST_DANCE;
   const overlayLabel = MODE_OVERLAY_LABELS[activeMode];
 
   // NORMAL mode: alternate dash/video each cycle.
@@ -231,6 +258,10 @@ export default function PanelPage({
     let offset = 0;
     let lastT = 0;
     const speed = CONFIG.TICKER.SPEED_PX_PER_SECOND || 180;
+    // Theme do modo (Last Dance). null nos demais modos.
+    const theme = isLastDance ? (CONFIG.MODE_THEMES?.lastDance ?? null) : null;
+    // Fundo sólido do tema (Last Dance = rosa). null → usa background padrão.
+    const themeBg = theme?.bg ?? null;
 
     function frame(t) {
       if (cancelled) return;
@@ -252,7 +283,12 @@ export default function PanelPage({
         return;
       }
 
-      background.render(ctx, { width: W, height: H, progress: 0 });
+      if (themeBg) {
+        ctx.fillStyle = themeBg;
+        ctx.fillRect(0, 0, W, H);
+      } else {
+        background.render(ctx, { width: W, height: H, progress: 0 });
+      }
 
       if (overlayLabel) {
         drawModeOverlay(ctx, W, H, overlayLabel);
@@ -271,7 +307,9 @@ export default function PanelPage({
             ? textTickerLayer
             : isLive
               ? liveTickerLayer
-              : goalsTicker;
+              : isLastDance
+                ? lastDanceLayer
+                : goalsTicker;
 
       ctx.font = CONFIG.TICKER.FONT;
       let items = [];
@@ -291,6 +329,10 @@ export default function PanelPage({
       ctx.clip();
       drawTickerTiled(ctx, items, total, offset, W);
       ctx.restore();
+
+      // Borda pontilhada FIXA (overlay) — desenhada após o ticker, sem offset.
+      // Não faz parte da camada que rola.
+      if (theme?.border?.enabled) drawDottedBorder(ctx, W, H, theme.border);
 
       if (debugSeam) {
         ctx.save();
@@ -341,6 +383,7 @@ export default function PanelPage({
     isWelcomeCliente,
     isTextoLivre,
     isLive,
+    isLastDance,
     overlayLabel,
   ]);
 
