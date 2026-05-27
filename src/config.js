@@ -232,7 +232,8 @@ export const CONFIG = {
 
   VIDEO_MODES: {
     NORMAL: { label: "Normal", path: "/assets/video.mp4" },
-    // LAST_DANCE removido: agora é ticker de metas temático (ver MODE_THEMES.lastDance).
+    // LAST_DANCE: ticker temático intercalado com este vídeo (1 min cada).
+    LAST_DANCE: { label: "Last Dance", path: "/assets/last%20dance.mp4" },
     NUT_DAY: { label: "Nut Day", path: "/assets/nut-day.mp4" },
     BLACK_FRIDAY: { label: "Black Friday", path: "/assets/black-friday.mp4" },
     PANTERA: { label: "Pantera", path: "/assets/pantera.mp4" },
@@ -242,6 +243,12 @@ export const CONFIG = {
   },
 
   METAS_ROTATION: {
+    DASH_DURATION_MS: 60_000,
+    VIDEO_DURATION_MS: 60_000,
+  },
+
+  // Last Dance: intercala dash temático e vídeo last dance.mp4, 1 min cada.
+  LAST_DANCE_ROTATION: {
     DASH_DURATION_MS: 60_000,
     VIDEO_DURATION_MS: 60_000,
   },

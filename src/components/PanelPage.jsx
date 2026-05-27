@@ -178,6 +178,29 @@ export default function PanelPage({
     return () => clearTimeout(timeoutId);
   }, [isNormal, forceMetas]);
   const isMetasVideo = isNormal && metasPhase === "video";
+
+  // LAST_DANCE mode: alternate themed dash / last dance video, 1 min each.
+  const [lastDancePhase, setLastDancePhase] = useState("dash");
+  useEffect(() => {
+    if (!isLastDance) {
+      setLastDancePhase("dash");
+      return;
+    }
+    const dashMs = CONFIG.LAST_DANCE_ROTATION?.DASH_DURATION_MS ?? 60_000;
+    const videoMs = CONFIG.LAST_DANCE_ROTATION?.VIDEO_DURATION_MS ?? 60_000;
+    let timeoutId;
+    function schedule(phase) {
+      setLastDancePhase(phase);
+      const wait = phase === "dash" ? dashMs : videoMs;
+      timeoutId = setTimeout(() => {
+        schedule(phase === "dash" ? "video" : "dash");
+      }, wait);
+    }
+    schedule("dash");
+    return () => clearTimeout(timeoutId);
+  }, [isLastDance]);
+  const isLastDanceVideo = isLastDance && lastDancePhase === "video";
+
   useEffect(() => {
     if (isControlled || forceMetas) return;
     let cancelled = false;
@@ -233,7 +256,7 @@ export default function PanelPage({
   }, [isTextoLivre, customText]);
 
   useEffect(() => {
-    if (isPanteraVideo || isSinoVideo || isTogetherVideo || isMetasVideo) return;
+    if (isPanteraVideo || isSinoVideo || isTogetherVideo || isMetasVideo || isLastDanceVideo) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -384,6 +407,7 @@ export default function PanelPage({
     isTextoLivre,
     isLive,
     isLastDance,
+    isLastDanceVideo,
     overlayLabel,
   ]);
 
@@ -391,6 +415,22 @@ export default function PanelPage({
   const sinoPath = CONFIG.VIDEO_MODES.SINO?.path ?? "/assets/SINOOO.mp4";
   const togetherPath = CONFIG.VIDEO_MODES.TOGETHER?.path ?? "/assets/together.mp4";
   const led12pPath = CONFIG.VIDEO_MODES.LED_12P?.path ?? "/assets/LED%2012P.mp4";
+  const lastDancePath = CONFIG.VIDEO_MODES.LAST_DANCE?.path ?? "/assets/last%20dance.mp4";
+
+  if (isLastDanceVideo) {
+    return (
+      <div className="ledScreen">
+        <video
+          src={lastDancePath}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="ledVideo"
+        />
+      </div>
+    );
+  }
 
   if (isMetasVideo) {
     return (
