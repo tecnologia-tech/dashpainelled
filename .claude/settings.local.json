@@ -43,7 +43,9 @@
       "Bash(git -c color.ui=never diff -U2 src/layers/goalsTickerLayer.js)",
       "Bash(git --no-pager diff src/layers/goalsTickerLayer.js)",
       "Bash(git --no-pager diff --stat HEAD -- scripts)",
-      "Bash(git --no-pager diff -- src/config.js)"
+      "Bash(git --no-pager diff -- src/config.js)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
