@@ -179,27 +179,8 @@ export default function PanelPage({
   }, [isNormal, forceMetas]);
   const isMetasVideo = isNormal && metasPhase === "video";
 
-  // LAST_DANCE mode: alternate themed dash / last dance video, 1 min each.
-  const [lastDancePhase, setLastDancePhase] = useState("dash");
-  useEffect(() => {
-    if (!isLastDance) {
-      setLastDancePhase("dash");
-      return;
-    }
-    const dashMs = CONFIG.LAST_DANCE_ROTATION?.DASH_DURATION_MS ?? 60_000;
-    const videoMs = CONFIG.LAST_DANCE_ROTATION?.VIDEO_DURATION_MS ?? 60_000;
-    let timeoutId;
-    function schedule(phase) {
-      setLastDancePhase(phase);
-      const wait = phase === "dash" ? dashMs : videoMs;
-      timeoutId = setTimeout(() => {
-        schedule(phase === "dash" ? "video" : "dash");
-      }, wait);
-    }
-    schedule("dash");
-    return () => clearTimeout(timeoutId);
-  }, [isLastDance]);
-  const isLastDanceVideo = isLastDance && lastDancePhase === "video";
+  // LAST_DANCE mode: video only por enquanto (rotação dash/vídeo desativada).
+  const isLastDanceVideo = isLastDance;
 
   useEffect(() => {
     if (isControlled || forceMetas) return;
