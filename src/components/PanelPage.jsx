@@ -9,8 +9,8 @@ import * as liveTickerLayer from "../layers/liveTickerLayer.js";
 import * as textTickerLayer from "../layers/textTickerLayer.js";
 import * as welcomeClienteLayer from "../layers/welcomeClienteLayer.js";
 import { ensureLoaded as ensureGoals } from "../services/goalsService.js";
-import { getSettings, saveSettings } from "../services/settingsService.js";
 import { KEY_TO_MODE } from "../services/modeKeymap.js";
+import { getSettings, saveSettings } from "../services/settingsService.js";
 
 const PANEL_WIDTH = 2112;
 const PANEL_HEIGHT = 192;
@@ -149,10 +149,8 @@ export default function PanelPage({
   const isNormal = activeMode === CONFIG.MODES.NORMAL;
   const isWelcomeColaborador =
     activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
-  const isWelcomeCliente =
-    activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
-  const isTextoLivre =
-    activeMode === CONFIG.MODES.TEXTO_LIVRE && !!customText;
+  const isWelcomeCliente = activeMode === CONFIG.MODES.BEM_VINDO_CLIENTE;
+  const isTextoLivre = activeMode === CONFIG.MODES.TEXTO_LIVRE && !!customText;
   const isLive = activeMode === CONFIG.MODES.LIVE;
   const isLastDance = activeMode === CONFIG.MODES.LAST_DANCE;
   const overlayLabel = MODE_OVERLAY_LABELS[activeMode];
@@ -164,8 +162,8 @@ export default function PanelPage({
       setMetasPhase("dash");
       return;
     }
-    const dashMs = CONFIG.METAS_ROTATION?.DASH_DURATION_MS ?? 60_000;
-    const videoMs = CONFIG.METAS_ROTATION?.VIDEO_DURATION_MS ?? 60_000;
+    const dashMs = CONFIG.METAS_ROTATION?.DASH_DURATION_MS ?? 5_000;
+    const videoMs = CONFIG.METAS_ROTATION?.VIDEO_DURATION_MS ?? 5_000;
     let timeoutId;
     function schedule(phase) {
       setMetasPhase(phase);
@@ -237,7 +235,14 @@ export default function PanelPage({
   }, [isTextoLivre, customText]);
 
   useEffect(() => {
-    if (isPanteraVideo || isSinoVideo || isTogetherVideo || isMetasVideo || isLastDanceVideo) return;
+    if (
+      isPanteraVideo ||
+      isSinoVideo ||
+      isTogetherVideo ||
+      isMetasVideo ||
+      isLastDanceVideo
+    )
+      return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -394,10 +399,13 @@ export default function PanelPage({
 
   const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
   const sinoPath = CONFIG.VIDEO_MODES.SINO?.path ?? "/assets/SINOOO.mp4";
-  const togetherPath = CONFIG.VIDEO_MODES.TOGETHER?.path ?? "/assets/together.mp4";
+  const togetherPath =
+    CONFIG.VIDEO_MODES.TOGETHER?.path ?? "/assets/together.mp4";
   const metasVideoPath =
-    CONFIG.VIDEO_MODES.BDAY_12P?.path ?? "/assets/BDAY%2012P%20-%20LED%20V1.mp4";
-  const lastDancePath = CONFIG.VIDEO_MODES.LAST_DANCE?.path ?? "/assets/last%20dance.mp4";
+    CONFIG.VIDEO_MODES.BDAY_12P?.path ??
+    "/assets/BDAY%2012P%20-%20LED%20V1.mp4";
+  const lastDancePath =
+    CONFIG.VIDEO_MODES.LAST_DANCE?.path ?? "/assets/last%20dance.mp4";
 
   if (isLastDanceVideo) {
     return (

@@ -245,8 +245,8 @@ export const CONFIG = {
   },
 
   METAS_ROTATION: {
-    DASH_DURATION_MS: 60_000,
-    VIDEO_DURATION_MS: 60_000,
+    DASH_DURATION_MS: 30_000,
+    VIDEO_DURATION_MS: 30_000,
   },
 
   // Last Dance: intercala dash temático e vídeo last dance.mp4, 1 min cada.
