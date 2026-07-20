@@ -240,6 +240,8 @@ export const CONFIG = {
     SINO: { label: "Sino", path: "/assets/SINOOO.mp4" },
     TOGETHER: { label: "Together", path: "/assets/together.mp4" },
     LED_12P: { label: "LED 12P", path: "/assets/LED%2012P.mp4" },
+    // Vídeo intercalado no modo Metas (alterna com os valores das metas).
+    BDAY_12P: { label: "BDAY 12P", path: "/assets/BDAY%2012P%20-%20LED%20V1.mp4" },
   },
 
   METAS_ROTATION: {

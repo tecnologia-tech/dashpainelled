@@ -395,7 +395,8 @@ export default function PanelPage({
   const panteraPath = CONFIG.VIDEO_MODES.PANTERA?.path ?? "/assets/pantera.mp4";
   const sinoPath = CONFIG.VIDEO_MODES.SINO?.path ?? "/assets/SINOOO.mp4";
   const togetherPath = CONFIG.VIDEO_MODES.TOGETHER?.path ?? "/assets/together.mp4";
-  const led12pPath = CONFIG.VIDEO_MODES.LED_12P?.path ?? "/assets/LED%2012P.mp4";
+  const metasVideoPath =
+    CONFIG.VIDEO_MODES.BDAY_12P?.path ?? "/assets/BDAY%2012P%20-%20LED%20V1.mp4";
   const lastDancePath = CONFIG.VIDEO_MODES.LAST_DANCE?.path ?? "/assets/last%20dance.mp4";
 
   if (isLastDanceVideo) {
@@ -417,7 +418,7 @@ export default function PanelPage({
     return (
       <div className="ledScreen">
         <video
-          src={led12pPath}
+          src={metasVideoPath}
           autoPlay
           loop
           muted
