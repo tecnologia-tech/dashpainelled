@@ -155,10 +155,30 @@ export default function PanelPage({
   const isLastDance = activeMode === CONFIG.MODES.LAST_DANCE;
   const overlayLabel = MODE_OVERLAY_LABELS[activeMode];
 
+  // BDAY mode (temporário): modo normal alterna só entre BDAY V1 e V2,
+  // sem dash de metas e sem LED 12P.mp4. Bypass — nada do ciclo legado
+  // é removido; METAS_BDAY_MODE=false restaura o comportamento original.
+  // Vale também na rota /metas (forceMetas): com a flag ativa, o modo Metas
+  // inteiro vira alternância BDAY — forceMetas só volta a pinar o ticker
+  // quando METAS_BDAY_MODE = false.
+  const isBdayMode = isNormal && !!CONFIG.METAS_BDAY_MODE;
+  const [bdayIndex, setBdayIndex] = useState(0);
+  useEffect(() => {
+    if (!isBdayMode) {
+      setBdayIndex(0);
+      return;
+    }
+    // Mesma cadência do ciclo antigo: troca a cada 60s.
+    const id = setInterval(() => {
+      setBdayIndex((i) => (i + 1) % 2);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [isBdayMode]);
+
   // NORMAL mode: alternate dash/video each cycle.
   const [metasPhase, setMetasPhase] = useState("dash");
   useEffect(() => {
-    if (!isNormal || forceMetas) {
+    if (!isNormal || forceMetas || isBdayMode) {
       setMetasPhase("dash");
       return;
     }
@@ -174,7 +194,7 @@ export default function PanelPage({
     }
     schedule("dash");
     return () => clearTimeout(timeoutId);
-  }, [isNormal, forceMetas]);
+  }, [isNormal, forceMetas, isBdayMode]);
   const isMetasVideo = isNormal && metasPhase === "video";
 
   // LAST_DANCE mode: video only por enquanto (rotação dash/vídeo desativada).
@@ -240,6 +260,7 @@ export default function PanelPage({
       isSinoVideo ||
       isTogetherVideo ||
       isMetasVideo ||
+      isBdayMode ||
       isLastDanceVideo
     )
       return;
@@ -388,6 +409,7 @@ export default function PanelPage({
     isSinoVideo,
     isTogetherVideo,
     isMetasVideo,
+    isBdayMode,
     isWelcomeColaborador,
     isWelcomeCliente,
     isTextoLivre,
@@ -401,11 +423,33 @@ export default function PanelPage({
   const sinoPath = CONFIG.VIDEO_MODES.SINO?.path ?? "/assets/SINOOO.mp4";
   const togetherPath =
     CONFIG.VIDEO_MODES.TOGETHER?.path ?? "/assets/together.mp4";
+  // Ciclo legado do modo Metas (flag METAS_BDAY_MODE = false): ticker <-> LED 12P.
   const metasVideoPath =
-    CONFIG.VIDEO_MODES.BDAY_12P?.path ??
-    "/assets/BDAY%2012P%20-%20LED%20V1.mp4";
+    CONFIG.VIDEO_MODES.LED_12P?.path ?? "/assets/LED%2012P.mp4";
+  // Modo BDay (flag = true): alterna V1 <-> V2 a cada 60s.
+  const bdayPaths = [
+    CONFIG.VIDEO_MODES.BDAY_12P?.path ?? "/assets/BDAY%2012P%20-%20LED%20V1.mp4",
+    CONFIG.VIDEO_MODES.BDAY_12P_V2?.path ??
+      "/assets/BDAY%2012P%20-%20LED%20V2.mp4",
+  ];
   const lastDancePath =
     CONFIG.VIDEO_MODES.LAST_DANCE?.path ?? "/assets/last%20dance.mp4";
+
+  if (isBdayMode) {
+    return (
+      <div className="ledScreen">
+        <video
+          key={bdayIndex}
+          src={bdayPaths[bdayIndex]}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="ledVideo"
+        />
+      </div>
+    );
+  }
 
   if (isLastDanceVideo) {
     return (

@@ -240,9 +240,16 @@ export const CONFIG = {
     SINO: { label: "Sino", path: "/assets/SINOOO.mp4" },
     TOGETHER: { label: "Together", path: "/assets/together.mp4" },
     LED_12P: { label: "LED 12P", path: "/assets/LED%2012P.mp4" },
-    // Vídeo intercalado no modo Metas (alterna com os valores das metas).
-    BDAY_12P: { label: "BDAY 12P", path: "/assets/BDAY%2012P%20-%20LED%20V1.mp4" },
+    // Vídeos do modo BDay (METAS_BDAY_MODE): alternam entre si a cada 60s.
+    BDAY_12P: { label: "BDAY 12P V1", path: "/assets/BDAY%2012P%20-%20LED%20V1.mp4" },
+    BDAY_12P_V2: { label: "BDAY 12P V2", path: "/assets/BDAY%2012P%20-%20LED%20V2.mp4" },
   },
+
+  // Modo BDay temporário: quando true, o modo Metas (normal) NÃO renderiza o
+  // ticker de metas nem o LED 12P.mp4 — alterna apenas entre BDAY V1 e V2
+  // a cada 60s. Setar false restaura o ciclo original ticker<->LED 12P.mp4
+  // sem nenhuma outra alteração de código.
+  METAS_BDAY_MODE: true,
 
   METAS_ROTATION: {
     DASH_DURATION_MS: 30_000,
