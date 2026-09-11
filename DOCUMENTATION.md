@@ -150,6 +150,7 @@ Ferramentas de diagnóstico manuais existentes:
 - **Polling agressivo:** `PanelPage` faz GET `/api/settings` a cada 2s por instância; `goalsService` refaz fetch de wons+metas a cada 30s.
 - **`settings.json` versionado** com estado mutável (`activeMode`, `sinoEnabled`) — cada mudança de modo grava o arquivo; pode gerar diffs/ruído no git. Estado atual: `activeMode: "lastDance"`.
 - **Last Dance:** rotação dash/vídeo desativada — modo renderiza **só o vídeo em loop** (`PanelPage.jsx` `isLastDanceVideo = isLastDance`). Toda a lógica de theme/ticker Last Dance (`lastDanceLayer`, `MODE_THEMES.lastDance`) fica inativa nesse caminho. **Verificar** se é intencional (o commit recente `feat: last dance mode mostra so o video em loop` indica que sim).
-- **Modos declarados sem render dedicado:** `blackFriday`, `nutDay`, `ra` caem em `MODE_OVERLAY_LABELS` (só um texto sobreposto), não em vídeo/ticker próprios.
+- **Nut Day:** renderiza **só o vídeo `nut-day.mp4` em loop** (`PanelPage.jsx` `isNutDayVideo`), mesmo padrão de Pantera/Together.
+- **Modos declarados sem render dedicado:** `blackFriday`, `ra` caem em `MODE_OVERLAY_LABELS` (só um texto sobreposto), não em vídeo/ticker próprios.
 - **Dois motores de canvas paralelos:** `LedCanvas` (rota `/led`, 2048px, offset circular) e `PanelPage` (rota principal/`?panel`, 2112px, tiling). Lógica de loop duplicada em dois lugares — manter os dois em sincronia é frágil.
 - **`ANALISE_DASHBOARD.md`** (24KB) na raiz é doc/análise antiga — pode divergir do estado atual.
