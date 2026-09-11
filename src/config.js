@@ -31,7 +31,7 @@ export const CONFIG = {
 
   BACKGROUND: {
     TYPE: "image", // "solid" | "image"
-    PATH: "/assets/background.png",
+    PATH: "/assets/background_clean.png",
     FALLBACK_COLOR: "#D9D9D9",
     FIT: "stretch",
   },
