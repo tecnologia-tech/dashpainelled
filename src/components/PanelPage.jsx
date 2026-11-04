@@ -20,7 +20,7 @@ const COLAB_MESSAGE = "SEJAM BEM VINDOS A TOCA DA PANTERA";
 
 const MODE_OVERLAY_LABELS = {
   // lastDance removido: agora renderiza o ticker temático, não um overlay estático.
-  blackFriday: "Modo Black Friday",
+  // blackFriday removido: agora renderiza o vídeo black-friday.mp4 em loop.
   // nutDay removido: agora renderiza o vídeo nut-day.mp4 em loop.
   ra: "RA",
 };
@@ -147,6 +147,7 @@ export default function PanelPage({
   const isSinoVideo = activeMode === CONFIG.MODES.SINO;
   const isTogetherVideo = activeMode === CONFIG.MODES.TOGETHER;
   const isNutDayVideo = activeMode === CONFIG.MODES.NUT_DAY;
+  const isBlackFridayVideo = activeMode === CONFIG.MODES.BLACK_FRIDAY;
   const isNormal = activeMode === CONFIG.MODES.NORMAL;
   const isWelcomeColaborador =
     activeMode === CONFIG.MODES.BEM_VINDO_COLABORADOR;
@@ -261,6 +262,7 @@ export default function PanelPage({
       isSinoVideo ||
       isTogetherVideo ||
       isNutDayVideo ||
+      isBlackFridayVideo ||
       isMetasVideo ||
       isBdayMode ||
       isLastDanceVideo
@@ -411,6 +413,7 @@ export default function PanelPage({
     isSinoVideo,
     isTogetherVideo,
     isNutDayVideo,
+    isBlackFridayVideo,
     isMetasVideo,
     isBdayMode,
     isWelcomeColaborador,
@@ -427,6 +430,8 @@ export default function PanelPage({
   const togetherPath =
     CONFIG.VIDEO_MODES.TOGETHER?.path ?? "/assets/together.mp4";
   const nutDayPath = CONFIG.VIDEO_MODES.NUT_DAY?.path ?? "/assets/nut-day.mp4";
+  const blackFridayPath =
+    CONFIG.VIDEO_MODES.BLACK_FRIDAY?.path ?? "/assets/black-friday.mp4";
   // Ciclo legado do modo Metas (flag METAS_BDAY_MODE = false): ticker <-> LED 12P.
   const metasVideoPath =
     CONFIG.VIDEO_MODES.LED_12P?.path ?? "/assets/LED%2012P.mp4";
@@ -535,6 +540,21 @@ export default function PanelPage({
       <div className="ledScreen">
         <video
           src={nutDayPath}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="ledVideo"
+        />
+      </div>
+    );
+  }
+
+  if (isBlackFridayVideo) {
+    return (
+      <div className="ledScreen">
+        <video
+          src={blackFridayPath}
           autoPlay
           loop
           muted
